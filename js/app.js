@@ -157,7 +157,7 @@
   var drawsPage = 1, ticketsPage = 1, walletPage = 1;
 
   var tg = null, tgUser = null;
-  var lastSyncAt = null, lastSyncOk = false, lastApiStatus = null;
+  var lastSyncAt = null, lastSyncOk = false, lastApiStatus = null, lastApiError = "";
   function initTelegram() {
     tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
     if (!tg) return;
@@ -300,7 +300,13 @@
   function apiGet(path) {
     if (!API_BASE || typeof fetch === "undefined") return Promise.resolve(null);
     return fetchTimeout(API_BASE + path + "?" + apiQS(), { cache: "no-store" })
-      .then(function (r) { lastApiStatus = r.status; return r.json().catch(function () { return null; }); })
+      .then(function (r) {
+        lastApiStatus = r.status;
+        return r.json().then(function (j) {
+          if (j && j.ok === false && j.error) lastApiError = String(j.error);
+          return j;
+        }).catch(function () { return null; });
+      })
       .catch(function () { lastApiStatus = 0; return null; });
   }
   function apiPost(path, body) {
@@ -310,7 +316,13 @@
     if (tg && tg.initData) body.initData = tg.initData;
     if (tgUser && (tgUser.first_name || tgUser.username) && !body.name) body.name = tgUser.first_name || tgUser.username;
     return fetchTimeout(API_BASE + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-      .then(function (r) { lastApiStatus = r.status; return r.json().catch(function () { return null; }); })
+      .then(function (r) {
+        lastApiStatus = r.status;
+        return r.json().then(function (j) {
+          if (j && j.ok === false && j.error) lastApiError = String(j.error);
+          return j;
+        }).catch(function () { return null; });
+      })
       .catch(function () { lastApiStatus = 0; return null; });
   }
   var serverRound = null, serverTop = [];
@@ -353,7 +365,11 @@
     var t = "";
     try { t = lastSyncAt.toLocaleTimeString(); } catch (e) {}
     if (lastSyncOk) return tag + " · Balance updated " + t + ".";
+    if (lastApiError === "invalid initData" || lastApiError === "tgId mismatch") {
+      return tag + " · Login rejected (" + lastApiError + ") — BOT_TOKEN on Render doesn't match this bot.";
+    }
     if (lastApiStatus === 400 || lastApiStatus === 401) return tag + " · Server rejected login — BOT_TOKEN on Render doesn't match this bot.";
+    if (lastApiError) return tag + " · Server says: " + lastApiError;
     if (lastApiStatus) return tag + " · Server error (" + lastApiStatus + ").";
     return tag + " · Couldn't reach server — showing saved balance.";
   }
