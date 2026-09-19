@@ -15,8 +15,8 @@
   /* TEST or LIVE frontend switch.
      "test": runs fully offline in demo mode (no backend needed).
      "live": put your Render URL in LIVE_API and flip APP_MODE to "live". */
-  var APP_MODE = "test";
-  var LIVE_API = "https://YOUR-API.onrender.com";
+  var APP_MODE = "live";
+  var LIVE_API = "https://lottobot-cto8.onrender.com";
   var API_BASE = APP_MODE === "live" ? LIVE_API : "";
   var SYM = "₦";
   var DEMO_SECRET = "lottobot-demo-v1";

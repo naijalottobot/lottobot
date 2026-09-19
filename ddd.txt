@@ -1,0 +1,1 @@
+Could not reach the server at https://lottobot-cto8.onrender.com. Check the URL, make sure the backend is deployed and awake (Render free tier can take ~60s to wake), then retry.
