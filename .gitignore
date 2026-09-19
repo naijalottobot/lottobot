@@ -1,0 +1,10 @@
+# Secrets & local stuff — never commit these.
+server/.env
+server/node_modules/
+nmn.txt
+
+# OS / editor noise.
+Desktop.ini
+Thumbs.db
+.DS_Store
+.vscode/

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LOTTO Admin</title>
+<style>
+  body { font-family: -apple-system, Helvetica, Arial, sans-serif; max-width: 760px; margin: 0 auto; padding: 24px 16px; background: #fafafa; color: #111; }
+  h1 { font-family: Georgia, serif; }
+  .row { display: flex; gap: 10px; margin: 12px 0; }
+  input { flex: 1; padding: 12px; font-size: 14px; border: 1px solid #111; border-radius: 10px; }
+  button { padding: 12px 18px; font-weight: 700; background: #111; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
+  button.ghost { background: #fff; color: #111; border: 1px solid #111; }
+  .card { background: #fff; border: 1px solid #e5e3de; border-radius: 14px; padding: 16px; margin: 12px 0; }
+  .stat { font-size: 28px; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td, th { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; word-break: break-all; }
+  pre { background: #111; color: #e6c878; padding: 12px; border-radius: 10px; overflow-x: auto; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>LOTTO Admin</h1>
+<p>Overview of rounds, tickets &amp; pending withdrawals.</p>
+<div class="row">
+  <input id="key" type="password" placeholder="ADMIN_KEY" />
+  <button id="go">Load</button>
+</div>
+<div id="out"></div>
+<script>
+  var base = location.origin;
+  document.getElementById("go").onclick = function () {
+    var key = document.getElementById("key").value.trim();
+    fetch(base + "/api/admin/overview?key=" + encodeURIComponent(key))
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) { document.getElementById("out").innerHTML = "<div class='card'>Error: " + j.error + "</div>"; return; }
+        var h = "<div class='card'>Users: <span class='stat'>" + j.users.c + "</span> · Outstanding: <b>" + j.users.outstanding + "</b> · Rounds: <b>" + j.rounds + "</b> · Tickets: <b>" + j.tickets.c + "</b> · Prizes paid: <b>" + j.tickets.paid + "</b></div>";
+        h += "<div class='card'><h3>Pending withdrawals (" + j.pending.length + ")</h3>";
+        h += j.pending.length ? "<table><tr><th>ID</th><th>User</th><th>Amount (NGN)</th><th>Bank</th><th>Acct No</th><th>Name on Acct</th><th></th></tr>" + j.pending.map(function (w) {
+          return "<tr><td>" + w.id + "</td><td>" + w.tgId + "</td><td>" + w.amount + "</td><td>" + (w.bank || "") + "</td><td>" + (w.accountNumber || w.account || "") + "</td><td>" + (w.accountName || "") + "</td>" +
+            "<td><button class='ghost' onclick=\"act('" + key.replace(/'/g, "") + "'," + w.id + ",'paid')\">Paid</button> " +
+            "<button class='ghost' onclick=\"act('" + key.replace(/'/g, "") + "'," + w.id + ",'reject')\">Reject</button></td></tr>";
+        }).join("") + "</table>" : "<p>None.</p>";
+        h += "</div>";
+        h += "<div class='card'><h3>Recent rounds</h3><pre>" + JSON.stringify(j.recent, null, 1) + "</pre></div>";
+        document.getElementById("out").innerHTML = h;
+      });
+  };
+  function act(key, id, action) {
+    fetch(base + "/api/admin/withdraw", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: key, id: id, action: action }) })
+      .then(function (r) { return r.json(); })
+      .then(function () { document.getElementById("go").click(); });
+  }
+</script>
+</body>
+</html>
