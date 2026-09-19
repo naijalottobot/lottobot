@@ -18,6 +18,7 @@
   var APP_MODE = "live";
   var LIVE_API = "https://lottobot-cto8.onrender.com";
   var API_BASE = APP_MODE === "live" ? LIVE_API : "";
+  var APP_VERSION = "15";
   var SYM = "₦";
   var DEMO_SECRET = "lottobot-demo-v1";
   var PRIZES = { 1: 1, 2: 50, 3: 100, 4: 500, 5: 10000 };
@@ -313,11 +314,12 @@
     });
   }
   function syncLine() {
-    if (!API_BASE) return "Demo mode — balance is stored on this device.";
-    if (!lastSyncAt) return "Connecting to server…";
+    var tag = "v" + APP_VERSION + " · ID " + myId();
+    if (!API_BASE) return tag + " · Demo mode — balance is stored on this device.";
+    if (!lastSyncAt) return tag + " · Connecting to server…";
     var t = "";
     try { t = lastSyncAt.toLocaleTimeString(); } catch (e) {}
-    return lastSyncOk ? "Balance updated " + t + "." : "Couldn't reach server — showing saved balance.";
+    return tag + (lastSyncOk ? " · Balance updated " + t + "." : " · Couldn't reach server — showing saved balance.");
   }
 
   /* ================= HELPERS ================= */
