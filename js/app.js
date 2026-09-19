@@ -464,7 +464,7 @@
     screen(
       '<div class="hero fade">' +
       '<div class="kicker">Free Hourly Draw</div>' +
-      "<h1>Win <span class='amt'>" + money(10000) + "</span><br/><em>every hour.</em></h1>" +
+      "<h1>Win <span class='amt'>" + money(10000) + " naira</span><br/><em>every hour.</em></h1>" +
       '<p class="lede">' + (greet ? "Good luck, " + greet + ". " : "") + "Pick 5 numbers from 1–100 and win " + money(10000) + " naira when all 5 numbers play on your ticket. Free entry, new draw round every hour.</p>" +
       '<div class="jackpot"><div class="jp-k">This Hour&apos;s Jackpot</div><div class="jp-v">' + money(10000) + " <small>5/5</small></div>" +
       '<div class="jp-sub">Draw <b>' + esc(rid) + "</b> · status: <b>" + esc(st) + "</b></div>" +

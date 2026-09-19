@@ -1,4 +1,4 @@
-# NairaLotto — Win ₦10,000 Every Hour (Telegram Mini App)
+# NairaLotto — Win ₦10,000 Naira Every Hour (Telegram Mini App)
 
 Free hourly lotto game: pick 5 numbers from 1–100, get a ticket like
 `NG18092026A7391048261`, and watch the animated reveal at :52. Winnings credit
