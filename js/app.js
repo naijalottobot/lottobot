@@ -275,9 +275,19 @@
     if (extra) for (var k in extra) p[k] = extra[k];
     return Object.keys(p).map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(p[k]); }).join("&");
   }
+  function fetchTimeout(url, opts, ms) {
+    ms = ms || 25000;
+    if (typeof AbortController === "undefined") return fetch(url, opts);
+    var ctl;
+    try { ctl = new AbortController(); } catch (e) { return fetch(url, opts); }
+    var timer = setTimeout(function () { try { ctl.abort(); } catch (e) {} }, ms);
+    opts = opts || {};
+    try { opts.signal = ctl.signal; } catch (e) {}
+    return fetch(url, opts).then(function (r) { clearTimeout(timer); return r; }, function (e) { clearTimeout(timer); throw e; });
+  }
   function apiGet(path) {
     if (!API_BASE || typeof fetch === "undefined") return Promise.resolve(null);
-    return fetch(API_BASE + path + "?" + apiQS(), { cache: "no-store" })
+    return fetchTimeout(API_BASE + path + "?" + apiQS(), { cache: "no-store" })
       .then(function (r) { lastApiStatus = r.status; return r.json().catch(function () { return null; }); })
       .catch(function () { lastApiStatus = 0; return null; });
   }
@@ -287,29 +297,40 @@
     body.tgId = myId();
     if (tg && tg.initData) body.initData = tg.initData;
     if (tgUser && (tgUser.first_name || tgUser.username) && !body.name) body.name = tgUser.first_name || tgUser.username;
-    return fetch(API_BASE + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    return fetchTimeout(API_BASE + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       .then(function (r) { lastApiStatus = r.status; return r.json().catch(function () { return null; }); })
       .catch(function () { lastApiStatus = 0; return null; });
   }
   var serverRound = null, serverTop = [];
-  function syncServer() {
+  function syncServer(n) {
     if (!API_BASE) return;
+    n = n || 0;
     var who = myId(); /* ignore late responses meant for a previous identity */
+    function paintSync() {
+      var s = el("syncLine");
+      if (s) s.textContent = syncLine();
+    }
     apiGet("/api/round/current").then(function (r) {
       if (r && r.ok) { serverRound = r; if (Array.isArray(r.top10)) serverTop = r.top10; tick(); }
     });
     apiGet("/api/me").then(function (me) {
       if (myId() !== who) return;
-      lastSyncAt = new Date();
       if (me && me.ok && typeof me.balance === "number") {
+        lastSyncAt = new Date();
         lastSyncOk = true;
         if (me.balance !== balance) {
           balance = me.balance;
           saveAll();
           router();
+        } else {
+          paintSync();
         }
+      } else if (n < 3) {
+        setTimeout(function () { syncServer(n + 1); }, 6000);
       } else {
+        lastSyncAt = new Date();
         lastSyncOk = false;
+        paintSync();
       }
     });
   }
@@ -1014,7 +1035,7 @@
       '<div class="page fade">' +
       '<div class="sec-head"><h2>Wallet</h2></div>' +
       '<div class="bal-card"><div class="bal-k">Mini App Balance</div><div class="bal-v">' + money(balance) + '</div><div class="bal-sub">Get 5/5 matches - win <b>' + prizeFor(5).toLocaleString("en-NG") + " naira</b>. 4/5 matches wins <b>" + prizeFor(4).toLocaleString("en-NG") + " naira</b>. 3/5 matches wins <b>" + prizeFor(3).toLocaleString("en-NG") + " naira</b>. 2/5 matches win <b>" + prizeFor(2).toLocaleString("en-NG") + " naira</b> and 1/5 matches wins <b>" + prizeFor(1).toLocaleString("en-NG") + " naira</b>.</div></div>" +
-      '<p class="muted small" style="margin:8px 2px 0">' + syncLine() + "</p>" +
+      '<p class="muted small" id="syncLine" style="margin:8px 2px 0">' + syncLine() + "</p>" +
       '<div class="spacer"></div>' +
       '<div class="sec-head"><h2 style="font-size:20px">Withdraw</h2><span class="count">min ' + money(WITHDRAW_MIN) + "</span></div>" +
       '<p class="muted small" style="margin-bottom:4px">Enter the bank details where you want to receive your payout, then request.</p>' +
