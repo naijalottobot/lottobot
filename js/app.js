@@ -653,20 +653,20 @@
     screen(
       '<div class="page fade">' +
       '<div class="sec-head"><h2>Rules</h2></div>' +
-      '<p class="sub">Fair, simple, free.</p>' +
+      '<p class="sub">The official rules of play. Please read them carefully before entering a draw.</p>' +
       '<ul class="blist">' +
-      "<li>One round every hour. Round ID is <b>NG + DDMMYYYY + hour letter</b> (00:00–01:00 = A … 23:00–00:00 = X).</li>" +
-      "<li>Entries open <b>:00–:50</b> only. Max <b>" + MAX_TICKETS_PER_ROUND + " free tickets</b> per user per round.</li>" +
-      "<li>Each ticket holds <b>5 different numbers</b> from 1–100. Ticket ID is <b>round ID + 10 random digits</b> (never in order).</li>" +
-      "<li>At <b>:51</b> the system draws 5 numbers using a <b>seeded draw</b> (SHA-hash of the round ID + draw secret → seeded PRNG). Same round always gives the same numbers — verifiable, not clickable random.</li>" +
-      "<li>Winners are paid per matches on a single ticket — see the prize table below.</li>" +
-      "<li>Results show <b>:52–:59</b> with winning numbers + top 10 winners (5 → 2 matches). Full 5 → 1 list lives under Previous Draws.</li>" +
-      "<li>Winnings credit automatically to your mini-app balance. Withdrawals from <b>" + money(WITHDRAW_MIN) + "</b>.</li>" +
+      "<li><b>Draw rounds.</b> Draws take place every hour, on the hour (West Africa Time). Each round carries a unique Round ID in the format <b>NG + day, month, year + an hour letter</b> — A covers 12:00 AM–1:00 AM through X for 11:00 PM–12:00 AM. Example: <b>NG18092026A</b>.</li>" +
+      "<li><b>Entries.</b> Entry is free and open during the first 50 minutes of each hour only. Each user may submit a maximum of <b>" + MAX_TICKETS_PER_ROUND + " tickets per round</b>. Every ticket contains <b>5 distinct numbers between 1 and 100</b>, kept in the order entered.</li>" +
+      "<li><b>Tickets.</b> Each entry is issued a unique Ticket ID consisting of the Round ID followed by <b>10 randomly generated digits</b> (for example, NG18092026A7391048261). Ticket numbers are random and never sequential.</li>" +
+      "<li><b>The draw.</b> At 51 minutes past the hour, entries close and the system draws <b>5 winning numbers from 1 to 100</b> using a seeded draw procedure: a SHA-based hash of the Round ID, combined with a private draw secret, seeds a deterministic random generator. Every round therefore produces a fixed, reproducible result that can be independently verified after the fact.</li>" +
+      "<li><b>Prizes.</b> Each ticket is paid according to how many of its 5 numbers match the drawn numbers. Please see the prize table below.</li>" +
+      "<li><b>Results.</b> Results are published from 52 minutes past the hour until the next round begins, showing the winning numbers and the top 10 winning tickets (5 down to 2 matches). Complete winner lists (5 down to 1 match) for every past round are available at any time under Previous Draws.</li>" +
+      "<li><b>Payouts.</b> All winnings are credited to your in-app balance automatically. Bank withdrawals are available from <b>" + money(WITHDRAW_MIN) + "</b>; you will be asked to provide your bank name, account number, and the full name on the account.</li>" +
       "</ul>" +
       '<div class="spacer"></div>' +
       '<div class="sec-head"><h2 style="font-size:20px">Prize table</h2></div>' +
       prizeTableHtml() +
-      '<div class="notice"><h3>Fairness note</h3><p>The draw seed includes a server secret, so numbers can&apos;t be predicted before :51 — but anyone can re-run the published algorithm on the round ID afterwards to verify the result.</p></div>' +
+      '<div class="notice"><h3>Fair play</h3><p>The draw secret is kept private so that results cannot be predicted before a draw takes place. After each draw, anyone may re-run the published algorithm against the Round ID to confirm the result. Any attempt to exploit, manipulate, or abuse the system will lead to disqualification and forfeiture of winnings.</p></div>' +
       "</div>",
       "/", ""
     );
