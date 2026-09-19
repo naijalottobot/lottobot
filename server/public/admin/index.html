@@ -60,6 +60,11 @@
   .tabs { display: flex; gap: 10px; margin: 10px 0; }
   .tabs button { flex: 1; padding: 10px; font-weight: 600; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; color: var(--ink2); font-family: inherit; }
   .tabs button.on { border-color: var(--gold); color: var(--gold); }
+  .pager { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+  .pager button { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 9px 18px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .pager button:disabled { opacity: 0.35; cursor: default; }
+  .pager button:not(:disabled):hover { border-color: var(--gold); }
+  .pager .pg-info { font-size: 12.5px; color: var(--ink2); font-variant-numeric: tabular-nums; }
   #toast { color: var(--red); font-size: 13px; margin: 12px 0; min-height: 20px; }
   #toast.good { color: var(--green); }
   .muted { color: var(--ink3); font-size: 12px; }
@@ -99,6 +104,7 @@
         <thead><tr><th>ID</th><th>User</th><th class="num">Amount</th><th>Bank details</th><th>Status</th><th>When</th><th></th></tr></thead>
         <tbody id="wdRows"></tbody>
       </table></div>
+      <div id="pgWd"></div>
 
       <h2>Users</h2>
       <p class="sub">Balance, tickets and total winnings per user.</p>
@@ -107,6 +113,7 @@
         <thead><tr><th>Telegram ID</th><th>Name</th><th class="num">Balance</th><th class="num">Tickets</th><th class="num">Winnings</th><th>Joined</th></tr></thead>
         <tbody id="userRows"></tbody>
       </table></div>
+      <div id="pgUsers"></div>
 
       <h2>Rounds</h2>
       <p class="sub">Tickets, winners and prizes paid per round.</p>
@@ -114,6 +121,7 @@
         <thead><tr><th>Round</th><th>Winning numbers</th><th class="num">Tickets</th><th class="num">Winners</th><th class="num">Paid</th><th>Drawn</th></tr></thead>
         <tbody id="roundRows"></tbody>
       </table></div>
+      <div id="pgRounds"></div>
 
       <h2>Round inspector</h2>
       <p class="sub">Every ticket in one round + tickets per user.</p>
@@ -131,6 +139,14 @@
         <input id="tNote" placeholder="Note (optional)" maxlength="120" />
         <button id="topupBtn">Send</button>
       </div>
+
+      <h2>Top-up history</h2>
+      <p class="sub">Every manual credit and deduction, newest first · 25 per page.</p>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Date</th><th>User</th><th class="num">Amount</th><th>Note</th></tr></thead>
+        <tbody id="topupRows"></tbody>
+      </table></div>
+      <div id="pgTopups"></div>
       <p class="muted" style="margin-top:16px" id="updated"></p>
     </div>
   </div>
@@ -145,6 +161,9 @@
   var KEY = "";
   var DATA = null;
   var wdTab = "pending";
+  var PER = 25;
+  var PG = { users: 1, rounds: 1, wd: 1, topups: 1 };
+  var userQ = "";
 
   /* Prefill: remembered server, or same origin when served by the backend. */
   var saved = "";
@@ -236,22 +255,60 @@
     })();
   }
 
+  function pagerHTML(page, totalPages, sec) {
+    if (totalPages <= 1) return "";
+    return "<div class='pager'><button data-pgsec='" + sec + "' data-pgd='-1'" + (page <= 1 ? " disabled" : "") + ">← Previous</button>" +
+      "<span class='pg-info'>Page " + page + " of " + totalPages + "</span>" +
+      "<button data-pgsec='" + sec + "' data-pgd='1'" + (page >= totalPages ? " disabled" : "") + ">Next →</button></div>";
+  }
+  function pageSlice(list, sec) {
+    var total = Math.max(1, Math.ceil(list.length / PER));
+    if (PG[sec] > total) PG[sec] = total;
+    if (PG[sec] < 1) PG[sec] = 1;
+    return { items: list.slice((PG[sec] - 1) * PER, PG[sec] * PER), page: PG[sec], total: total };
+  }
+
   function render() {
     var t = DATA.totals || {};
     document.getElementById("stats").innerHTML =
       stat("Users", t.users) + stat("Total rounds", t.rounds) + stat("Tickets", t.tickets) +
       stat("Winners", t.winners) + stat("Paid out", fmt(t.paid_out), "green") +
       stat("Pending", t.pending_count + " · " + fmt(t.pending_sum), "gold");
+    renderUsers();
+    renderRounds();
     renderWd();
-    document.getElementById("userRows").innerHTML = (DATA.users || []).map(function (u) {
-      return "<tr data-q=\"" + esc((u.tgId + " " + (u.name || "")).toLowerCase()) + "\"><td>" + esc(u.tgId) + "</td><td>" + esc(u.name || "—") + "</td>" +
+    renderTopups();
+    document.getElementById("updated").textContent = "Updated " + new Date().toLocaleTimeString();
+  }
+  function renderUsers() {
+    var q = userQ.toLowerCase();
+    var list = (DATA.users || []).filter(function (u) {
+      return !q || (u.tgId + " " + (u.name || "")).toLowerCase().indexOf(q) !== -1;
+    });
+    var p = pageSlice(list, "users");
+    document.getElementById("userRows").innerHTML = p.items.map(function (u) {
+      return "<tr><td>" + esc(u.tgId) + "</td><td>" + esc(u.name || "—") + "</td>" +
         "<td class='num'>" + fmt(u.balance) + "</td><td class='num'>" + u.tickets + "</td><td class='num'>" + fmt(u.winnings) + "</td><td>" + dt(u.joined) + "</td></tr>";
-    }).join("") || "<tr><td colspan='6' class='muted'>No users yet.</td></tr>";
-    document.getElementById("roundRows").innerHTML = (DATA.rounds || []).map(function (r) {
+    }).join("") || "<tr><td colspan='6' class='muted'>No users found.</td></tr>";
+    document.getElementById("pgUsers").innerHTML = pagerHTML(p.page, p.total, "users");
+  }
+  function renderRounds() {
+    var p = pageSlice(DATA.rounds || [], "rounds");
+    document.getElementById("roundRows").innerHTML = p.items.map(function (r) {
       return "<tr><td><b>" + esc(r.roundId) + "</b></td><td>" + (r.winning ? r.winning.join(" · ") : "—") + "</td>" +
         "<td class='num'>" + r.tickets + "</td><td class='num'>" + r.winners + "</td><td class='num'>" + fmt(r.paid) + "</td><td>" + dt(r.drawnAt) + "</td></tr>";
     }).join("") || "<tr><td colspan='6' class='muted'>No rounds yet.</td></tr>";
-    document.getElementById("updated").textContent = "Updated " + new Date().toLocaleTimeString();
+    document.getElementById("pgRounds").innerHTML = pagerHTML(p.page, p.total, "rounds");
+  }
+  function renderTopups() {
+    var p = pageSlice(DATA.topups || [], "topups");
+    document.getElementById("topupRows").innerHTML = p.items.map(function (a) {
+      var pos = Number(a.amount) >= 0;
+      return "<tr><td>" + dt(a.createdAt) + "</td><td>" + esc(a.tgId) + "</td>" +
+        "<td class='num' style='color:" + (pos ? "var(--green)" : "var(--red)") + "'>" + (pos ? "+" : "−") + fmt(Math.abs(a.amount)) + "</td>" +
+        "<td class='muted'>" + esc(a.what || "—") + "</td></tr>";
+    }).join("") || "<tr><td colspan='4' class='muted'>No manual top-ups yet.</td></tr>";
+    document.getElementById("pgTopups").innerHTML = pagerHTML(p.page, p.total, "topups");
   }
   function stat(k, v, cls) {
     return "<div class='stat'><div class='k'>" + k + "</div><div class='v" + (cls ? " " + cls : "") + "'>" + v + "</div></div>";
@@ -260,7 +317,8 @@
     var list = (DATA.withdrawals || []).filter(function (w) {
       return wdTab === "pending" ? w.status === "pending" : w.status !== "pending";
     });
-    document.getElementById("wdRows").innerHTML = list.map(function (w) {
+    var p = pageSlice(list, "wd");
+    document.getElementById("wdRows").innerHTML = p.items.map(function (w) {
       var bank = [w.bank, w.accountNumber || w.account, w.accountName].filter(Boolean).join(" · ");
       var act = w.status === "pending"
         ? "<button class='mini-ok' data-act='paid' data-id='" + w.id + "'>Confirm</button><button class='mini-no' data-act='reject' data-id='" + w.id + "'>Reject</button>"
@@ -268,6 +326,7 @@
       return "<tr><td>" + w.id + "</td><td>" + esc(w.tgId) + "</td><td class='num'>" + fmt(w.amount) + "</td><td>" + esc(bank) + "</td>" +
         "<td><span class='pill " + w.status + "'>" + w.status + "</span></td><td>" + dt(w.createdAt) + "</td><td>" + act + "</td></tr>";
     }).join("") || "<tr><td colspan='7' class='muted'>Nothing here.</td></tr>";
+    document.getElementById("pgWd").innerHTML = pagerHTML(p.page, p.total, "wd");
   }
 
   document.getElementById("loginBtn").addEventListener("click", login);
@@ -291,15 +350,28 @@
   });
   document.getElementById("tabP").addEventListener("click", function () {
     wdTab = "pending";
+    PG.wd = 1;
     document.getElementById("tabP").classList.add("on");
     document.getElementById("tabH").classList.remove("on");
     renderWd();
   });
   document.getElementById("tabH").addEventListener("click", function () {
     wdTab = "history";
+    PG.wd = 1;
     document.getElementById("tabH").classList.add("on");
     document.getElementById("tabP").classList.remove("on");
     renderWd();
+  });
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("[data-pgsec]") : null;
+    if (!b || b.disabled) return;
+    var sec = b.getAttribute("data-pgsec");
+    if (!PG.hasOwnProperty(sec)) return;
+    PG[sec] += parseInt(b.getAttribute("data-pgd"), 10) || 0;
+    if (sec === "users") renderUsers();
+    else if (sec === "rounds") renderRounds();
+    else if (sec === "wd") renderWd();
+    else if (sec === "topups") renderTopups();
   });
   document.getElementById("wdRows").addEventListener("click", function (e) {
     var b = e.target.closest ? e.target.closest("[data-act]") : null;
@@ -315,11 +387,9 @@
     .catch(function (err) { toast("Failed: " + err.message, false); });
   });
   document.getElementById("uSearch").addEventListener("input", function (e) {
-    var q = e.target.value.toLowerCase();
-    var rows = document.querySelectorAll("#userRows tr[data-q]");
-    for (var i = 0; i < rows.length; i++) {
-      rows[i].style.display = rows[i].getAttribute("data-q").indexOf(q) === -1 ? "none" : "";
-    }
+    userQ = e.target.value;
+    PG.users = 1;
+    renderUsers();
   });
   document.getElementById("inspectBtn").addEventListener("click", function () {
     var rid = document.getElementById("rId").value.trim().toUpperCase();
@@ -351,7 +421,10 @@
       document.getElementById("tTg").value = "";
       document.getElementById("tAmt").value = "";
       document.getElementById("tNote").value = "";
-    }).catch(function (err) { toast("Failed: " + err.message, false); });
+      PG.topups = 1;
+      return call("GET", "/api/admin/overview");
+    }).then(function (j) { DATA = j; render(); })
+    .catch(function (err) { toast("Failed: " + err.message, false); });
   });
 })();
 </script>

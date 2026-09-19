@@ -386,7 +386,7 @@ app.get("/api/admin/overview", requireAdmin, async (req, res) => {
          FROM users u LEFT JOIN tickets t ON t.tg_id = u.tg_id
         GROUP BY u.tg_id
         ORDER BY winnings DESC, u.created_at DESC
-        LIMIT 200`
+        LIMIT 500`
     );
     const rounds = await db.q(
       `SELECT r.round_id AS "roundId", r.winning, r.drawn_at AS "drawnAt",
@@ -395,7 +395,7 @@ app.get("/api/admin/overview", requireAdmin, async (req, res) => {
               (SELECT COALESCE(SUM(t.prize), 0)::int FROM tickets t WHERE t.round_id = r.round_id) AS paid
          FROM rounds r
         ORDER BY r.hour_start DESC
-        LIMIT 50`
+        LIMIT 200`
     );
     const withdrawals = await db.q(
       `SELECT id, tg_id AS "tgId", amount, bank,
@@ -403,9 +403,16 @@ app.get("/api/admin/overview", requireAdmin, async (req, res) => {
               account, status, created_at AS "createdAt"
          FROM withdrawals
         ORDER BY id DESC
-        LIMIT 100`
+        LIMIT 200`
     );
-    res.json({ ok: true, totals: totals.rows[0], users: users.rows, rounds: rounds.rows, withdrawals: withdrawals.rows });
+    const topups = await db.q(
+      `SELECT id, tg_id AS "tgId", what, amount, plus, created_at AS "createdAt"
+         FROM activity
+        WHERE what LIKE 'Admin%'
+        ORDER BY id DESC
+        LIMIT 200`
+    );
+    res.json({ ok: true, totals: totals.rows[0], users: users.rows, rounds: rounds.rows, withdrawals: withdrawals.rows, topups: topups.rows });
   } catch (err) { dbDown(res, err); }
 });
 
