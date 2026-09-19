@@ -81,8 +81,9 @@
 <main>
   <div id="login" class="card">
     <h2>Restricted</h2>
-    <p class="sub">Enter your admin key to view the dashboard.</p>
+    <p class="sub">Point at your backend server, then enter your admin key.</p>
     <div class="row">
+      <input id="srv" placeholder="Server URL (e.g. https://YOUR-API.onrender.com)" autocomplete="off" />
       <input id="key" type="password" placeholder="ADMIN_KEY" />
       <button class="go" onclick="load()">Login</button>
     </div>
@@ -157,9 +158,12 @@
 </main>
 <script>
   var KEY = sessionStorage.getItem("lotto_admin") || "";
+  var BASE = (sessionStorage.getItem("lotto_admin_base") || "").replace(/\/+$/, "");
+  if (!BASE && location.origin && location.origin.indexOf("http") === 0) BASE = location.origin;
   var DATA = null;
   var wdTab = "pending";
-  if (KEY) { document.getElementById("key").value = KEY; load(); }
+  if (BASE) document.getElementById("srv").value = BASE;
+  if (KEY) { document.getElementById("key").value = KEY; if (BASE) load(); }
 
   function say(ok, msg) {
     var e = document.getElementById(ok ? "okMsg" : "errMsg");
@@ -175,7 +179,10 @@
     body.key = KEY;
     opts.body = JSON.stringify(body);
     if (!opts.method) { path += (path.indexOf("?") === -1 ? "?" : "&") + "key=" + encodeURIComponent(KEY); }
-    return fetch(path, opts).then(function (r) { return r.json(); });
+    return fetch(BASE + path, opts).then(function (r) {
+      if (!r.ok && r.status === 404) throw new Error("NOT_FOUND");
+      return r.json();
+    });
   }
   function logout() {
     KEY = "";
@@ -186,28 +193,34 @@
     document.getElementById("refreshBtn").style.display = "none";
     document.getElementById("key").value = "";
   }
+  function loginFail(msg) {
+    var m = document.getElementById("loginMsg");
+    m.textContent = msg;
+    m.classList.add("show");
+  }
   function load() {
     var k = document.getElementById("key").value.trim();
-    if (!k) return;
+    var s = document.getElementById("srv").value.trim().replace(/\/+$/, "");
+    if (!s) { loginFail("Enter your backend Server URL first (e.g. https://YOUR-API.onrender.com)."); return; }
+    if (!k) { loginFail("Enter your ADMIN_KEY."); return; }
+    BASE = s;
     KEY = k;
     api("/api/admin/overview").then(function (j) {
-      if (!j.ok) {
-        var m = document.getElementById("loginMsg");
-        m.textContent = "Error: " + j.error;
-        m.classList.add("show");
-        return;
-      }
+      if (!j.ok) { loginFail("Error: " + j.error); return; }
       sessionStorage.setItem("lotto_admin", KEY);
+      sessionStorage.setItem("lotto_admin_base", BASE);
       DATA = j;
       document.getElementById("login").style.display = "none";
       document.getElementById("dash").style.display = "block";
       document.getElementById("logoutBtn").style.display = "inline";
       document.getElementById("refreshBtn").style.display = "inline";
       render();
-    }).catch(function () {
-      var m = document.getElementById("loginMsg");
-      m.textContent = "Could not reach server.";
-      m.classList.add("show");
+    }).catch(function (e) {
+      if (String(e && e.message).indexOf("NOT_FOUND") !== -1) {
+        loginFail("That address is not the lotto backend (got 404). Open this page from " + BASE + "/admin, or fix the Server URL.");
+      } else {
+        loginFail("Could not reach the server at " + BASE + ". Check the URL, make sure the backend is deployed and awake (Render free tier can take ~60s to wake), then retry.");
+      }
     });
   }
   function fmt(n) { return "₦" + Number(n || 0).toLocaleString("en-NG"); }
@@ -259,7 +272,7 @@
       if (!j.ok) { say(false, j.error); return; }
       say(true, action === "paid" ? "Withdrawal confirmed (paid)." : "Withdrawal rejected and refunded.");
       load();
-    });
+    }).catch(function () { say(false, "Lost connection to the server — try Refresh."); });
   }
   function doTopup() {
     var tg = document.getElementById("tTg").value.trim();
@@ -274,7 +287,7 @@
       document.getElementById("tAmt").value = "";
       document.getElementById("tNote").value = "";
       load();
-    });
+    }).catch(function () { say(false, "Lost connection to the server — try Refresh."); });
   }
   function filterUsers() {
     var q = document.getElementById("uSearch").value.toLowerCase();
