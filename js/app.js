@@ -449,6 +449,18 @@
       tab("wallet", "/wallet", "wallet", "Wallet") +
       "</nav>";
   }
+  /* Loading + connection-error cards. A failed fetch must NEVER render as
+     an empty list — otherwise real tickets look deleted when the backend
+     is merely asleep. */
+  function loadingCard(what) {
+    return '<div class="empty"><div class="e-ic">○</div><p>Loading ' + what + "…</p></div>";
+  }
+  function errCard(retry, rid) {
+    return '<div class="empty"><div class="e-ic">○</div><p><b>Connection failed.</b></p>' +
+      '<p class="muted small">The server may be waking up (takes ~60s on first load).</p>' +
+      '<div class="spacer"></div><button class="btn-g" data-retry="' + retry + '"' + (rid ? ' data-rid="' + esc(rid) + '"' : "") + ">Retry</button></div>";
+  }
+
   function screen(html, backTo, tab) {
     clearRevealTimers();
     el("app").innerHTML = topbar(backTo) + html + tabbar(tab || "");
@@ -779,8 +791,25 @@
       '<button ' + attr + '="1"' + (page >= totalPages ? " disabled" : "") + ">Next →</button></div>";
   }
   function drawsServer() {
+    screen(
+      '<div class="page fade">' +
+      '<div class="sec-head"><h2>Previous Draws</h2><span class="count">live</span></div>' +
+      loadingCard("draws") +
+      "</div>",
+      "/", "draws"
+    );
     apiGet("/api/rounds").then(function (r) {
-      if (r && r.ok) { serverDraws = r.rounds || []; serverDrawsPage = r.page || 1; serverDrawsTotal = r.totalPages || 1; }
+      if (!r || !r.ok) {
+        screen(
+          '<div class="page fade">' +
+          '<div class="sec-head"><h2>Previous Draws</h2><span class="count">live</span></div>' +
+          errCard("draws") +
+          "</div>",
+          "/", "draws"
+        );
+        return;
+      }
+      serverDraws = r.rounds || []; serverDrawsPage = r.page || 1; serverDrawsTotal = r.totalPages || 1;
       screen(
         '<div class="page fade">' +
         '<div class="sec-head"><h2>Previous Draws</h2><span class="count">live</span></div>' +
@@ -804,8 +833,24 @@
         renderServerDrawDetail(rid);
         return;
       }
+      screen(
+        '<div class="page fade">' +
+        '<div class="sec-head"><h2 style="font-size:23px">' + esc(rid) + "</h2></div>" +
+        loadingCard("results") +
+        "</div>",
+        "/draws", "draws"
+      );
       apiGet("/api/round/" + encodeURIComponent(rid)).then(function (r) {
-        if (!r || !r.ok) { toast("Draw not found"); draws(); return; }
+        if (!r || !r.ok) {
+          screen(
+            '<div class="page fade">' +
+            '<div class="sec-head"><h2 style="font-size:23px">' + esc(rid) + "</h2></div>" +
+            errCard("drawdetail", rid) +
+            "</div>",
+            "/draws", "draws"
+          );
+          return;
+        }
         serverDrawWinners = r.winners || [];
         serverDrawWinning = r.winning || null;
         serverDrawWinnersKey = rid;
@@ -861,8 +906,25 @@
 
   function tickets() {
     if (API_BASE) {
+      screen(
+        '<div class="page fade">' +
+        '<div class="sec-head"><h2>My Tickets</h2></div>' +
+        loadingCard("tickets") +
+        "</div>",
+        "/", "tickets"
+      );
       apiGet("/api/my-tickets").then(function (r) {
-        serverTickets = (r && r.ok && r.tickets) || [];
+        if (!r || !r.ok) {
+          screen(
+            '<div class="page fade">' +
+            '<div class="sec-head"><h2>My Tickets</h2></div>' +
+            errCard("tickets") +
+            "</div>",
+            "/", "tickets"
+          );
+          return;
+        }
+        serverTickets = r.tickets || [];
         var tp = Math.max(1, Math.ceil(serverTickets.length / PER_PAGE));
         if (serverTicketsPage > tp) serverTicketsPage = tp;
         renderServerTickets();
@@ -1061,6 +1123,17 @@
     if (stp && !stp.disabled) {
       serverTicketsPage += parseInt(stp.getAttribute("data-stpage"), 10) || 0;
       renderServerTickets();
+      return;
+    }
+    var rt = t.closest ? t.closest("[data-retry]") : null;
+    if (rt) {
+      var what = rt.getAttribute("data-retry");
+      if (what === "tickets") { tickets(); }
+      else if (what === "draws") { draws(); }
+      else if (what === "drawdetail" && rt.getAttribute("data-rid")) {
+        serverDrawWinnersKey = "";
+        drawDetail(decodeURIComponent(rt.getAttribute("data-rid")));
+      }
       return;
     }
     var dwp = t.closest ? t.closest("[data-dwpage]") : null;
