@@ -198,29 +198,49 @@
     m.textContent = msg;
     m.classList.add("show");
   }
+  /* Render free tier sleeps when idle: the first request can take ~60s or
+     die while the service wakes. Retry the lightweight health endpoint a
+     few times before giving up, so login survives a cold start. */
+  function wakeServer(left, done) {
+    loginFail("Waking server… (" + (5 - left) + "/4 — free tier can take a minute)");
+    fetch(BASE + "/api/health", { cache: "no-store" }).then(function (r) {
+      return r.json().catch(function () { return null; });
+    }).then(function (h) {
+      if (h && h.ok) { done(true); return; }
+      if (left > 1) { setTimeout(function () { wakeServer(left - 1, done); }, 8000); }
+      else done(false);
+    }).catch(function () {
+      if (left > 1) { setTimeout(function () { wakeServer(left - 1, done); }, 8000); }
+      else done(false);
+    });
+  }
   function load() {
     var k = document.getElementById("key").value.trim();
     var s = document.getElementById("srv").value.trim().replace(/\/+$/, "");
-    if (!s) { loginFail("Enter your backend Server URL first (e.g. https://YOUR-API.onrender.com)."); return; }
+    if (!s) { loginFail("Enter your backend Server URL first (e.g. https://lottobot-cto8.onrender.com)."); return; }
     if (!k) { loginFail("Enter your ADMIN_KEY."); return; }
+    if (s.indexOf("http") !== 0) { loginFail("Server URL must start with https://"); return; }
     BASE = s;
     KEY = k;
-    api("/api/admin/overview").then(function (j) {
-      if (!j.ok) { loginFail("Error: " + j.error); return; }
-      sessionStorage.setItem("lotto_admin", KEY);
-      sessionStorage.setItem("lotto_admin_base", BASE);
-      DATA = j;
-      document.getElementById("login").style.display = "none";
-      document.getElementById("dash").style.display = "block";
-      document.getElementById("logoutBtn").style.display = "inline";
-      document.getElementById("refreshBtn").style.display = "inline";
-      render();
-    }).catch(function (e) {
-      if (String(e && e.message).indexOf("NOT_FOUND") !== -1) {
-        loginFail("That address is not the lotto backend (got 404). Open this page from " + BASE + "/admin, or fix the Server URL.");
-      } else {
-        loginFail("Could not reach the server at " + BASE + ". Check the URL, make sure the backend is deployed and awake (Render free tier can take ~60s to wake), then retry.");
-      }
+    wakeServer(4, function (up) {
+      if (!up) { loginFail("Could not reach the server at " + BASE + ". Check the URL and that the backend deployed OK (see Render logs), then retry."); return; }
+      api("/api/admin/overview").then(function (j) {
+        if (!j.ok) { loginFail("Error: " + j.error); return; }
+        sessionStorage.setItem("lotto_admin", KEY);
+        sessionStorage.setItem("lotto_admin_base", BASE);
+        DATA = j;
+        document.getElementById("login").style.display = "none";
+        document.getElementById("dash").style.display = "block";
+        document.getElementById("logoutBtn").style.display = "inline";
+        document.getElementById("refreshBtn").style.display = "inline";
+        render();
+      }).catch(function (e) {
+        if (String(e && e.message).indexOf("NOT_FOUND") !== -1) {
+          loginFail("That address is not the lotto backend (got 404). Open this page from " + BASE + "/admin, or fix the Server URL.");
+        } else {
+          loginFail("Lost connection mid-login — the server may have slept again. Press Login to retry.");
+        }
+      });
     });
   }
   function fmt(n) { return "₦" + Number(n || 0).toLocaleString("en-NG"); }
