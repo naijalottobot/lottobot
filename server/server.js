@@ -221,7 +221,10 @@ async function schedulerTick() {
 function monetagPostback(req, res) {
   const secret = process.env.MONETAG_POSTBACK_KEY || "";
   const q = req.query || {};
-  if (secret && q.key !== secret) return res.status(401).send("bad key");
+  if (secret && q.key !== secret) {
+    console.log("[postback] rejected: bad key");
+    return res.status(401).send("bad key");
+  }
   const tgId = String(q.telegram_id || q.tgId || "").slice(0, 64);
   const event = String(q.event || "impression").slice(0, 20);
   const zone = String(q.zone_id || q.zone || "").slice(0, 32);
@@ -231,7 +234,8 @@ function monetagPostback(req, res) {
   db.q(
     "INSERT INTO ad_events (tg_id, ymid, event, zone_id, request_var, estimated_price, raw) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)",
     [tgId, ymid, event, zone, rvar, price, JSON.stringify(q)]
-  ).catch((e) => console.error("[postback]", e.message));
+  ).then(() => console.log("[postback] stored: " + event + " tg=" + (tgId || "-") + " placement=" + (rvar || "-") + " price=" + price))
+   .catch((e) => console.error("[postback]", e.message));
   res.status(200).send("ok");
 }
 app.get("/api/monetag/postback", monetagPostback);
