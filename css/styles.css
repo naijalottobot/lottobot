@@ -293,6 +293,8 @@ input { font-family: inherit; }
 
 /* ================= Number balls (candy) ================= */
 .balls { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+/* Winning-number reveal: 3 balls on top, 2 centered below (inverse pyramid). */
+.balls.winpyr { max-width: 200px; margin-left: auto; margin-right: auto; justify-content: center; }
 .ball {
   width: 48px; height: 48px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;

@@ -506,7 +506,7 @@
     if (st === "RESULTS") {
       if (winning && winning.length) {
         resultHtml = '<div class="pick-card" style="margin-top:14px"><h3>Winning numbers</h3><p class="hint">Drawn ' + roundDrawTime(rid) + ' · seeded draw · verifiable</p>' +
-          '<div class="balls" id="winBalls"></div>' +
+          '<div class="balls winpyr" id="winBalls"></div>' +
           '<button class="replay-btn" data-replay="winBalls">Replay reveal</button></div>';
         var top = API_BASE ? serverTop : rec.winners.filter(function (w) { return w.matches >= 2; }).slice(0, 10);
         resultHtml += '<div class="spacer"></div><div class="sec-head"><h2 style="font-size:20px">Top winners</h2><span class="count">5 → 2 matches</span></div>';
@@ -826,7 +826,7 @@
       '<div class="page fade">' +
       '<div class="sec-head"><h2 style="font-size:23px">' + esc(rid) + '</h2><span class="count">' + winners.length + " winners</span></div>" +
       '<p class="sub">All winning tickets · 20 tickets per page.</p>' +
-      (rec.winning ? '<div class="balls" id="drawWinBalls"></div><button class="replay-btn" data-replay="drawWinBalls">Replay reveal</button>' : '<p class="muted small">Draw runs at ' + roundDrawTime(rid) + ", results at " + roundResultsTime(rid) + ".</p>") +
+      (rec.winning ? '<div class="balls winpyr" id="drawWinBalls"></div><button class="replay-btn" data-replay="drawWinBalls">Replay reveal</button>' : '<p class="muted small">Draw runs at ' + roundDrawTime(rid) + ", results at " + roundResultsTime(rid) + ".</p>") +
       '<div class="spacer"></div>' +
       '<p class="muted small" style="margin-bottom:10px">Green ball = matched number · grey = missed.</p>' +
       (winners.length ? '<div class="cards">' + items.map(function (w) { return winnerCard(w, rec.winning); }).join("") + "</div>" +
@@ -847,7 +847,7 @@
       '<div class="page fade">' +
       '<div class="sec-head"><h2 style="font-size:23px">' + esc(rid) + '</h2><span class="count">' + serverDrawWinners.length + " winners</span></div>" +
       '<p class="sub">All winning tickets · 20 tickets per page.</p>' +
-      (serverDrawWinning ? '<div class="balls" id="drawWinBalls"></div><button class="replay-btn" data-replay="drawWinBalls">Replay reveal</button>' : '<p class="muted small">Draw pending.</p>') +
+      (serverDrawWinning ? '<div class="balls winpyr" id="drawWinBalls"></div><button class="replay-btn" data-replay="drawWinBalls">Replay reveal</button>' : '<p class="muted small">Draw pending.</p>') +
       '<div class="spacer"></div>' +
       '<p class="muted small" style="margin-bottom:10px">Green ball = matched number · grey = missed.</p>' +
       (serverDrawWinners.length ? '<div class="cards">' + items.map(function (w) { return winnerCard(w, serverDrawWinning); }).join("") + "</div>" +
@@ -948,7 +948,7 @@
         '<span class="apg-info">Page ' + walletPage + " of " + totalPages + "</span>" +
         '<button data-wpage="1"' + (walletPage >= totalPages ? " disabled" : "") + ">Next →</button></div>" : "")
         : '<div class="empty"><div class="e-ic">○</div><p>No activity yet — winnings will show here.</p></div>') +
-      '<div class="notice"><h3>Sponsored</h3><p>Ad slot reserved here for Monetag Telegram Ads (coming soon).</p></div>' +
+      '<div class="notice"><h3>Sponsored</h3><p>Sponsored ads go here.</p></div>' +
       "</div>",
       "/", "wallet"
     );
