@@ -338,6 +338,19 @@
       return '<span class="' + cls + '">' + n + "</span>";
     }).join("") + "</div>";
   }
+  function prizeTableHtml() {
+    var rows = [
+      { m: 5, tag: "Jackpot" },
+      { m: 4, tag: "Big win" },
+      { m: 3, tag: "Nice hit" },
+      { m: 2, tag: "Small win" },
+      { m: 1, tag: "Consolation" },
+    ];
+    return '<div class="panel">' + rows.map(function (r) {
+      return '<div class="prow"><span class="k">' + r.m + " of 5 match" + (r.m > 1 ? "es" : "") + "<small>" + r.tag + "</small></span>" +
+        '<span class="v">' + money(prizeFor(r.m)) + "</span></div>";
+    }).join("") + "</div>";
+  }
   function fmtCountdown(ms) {
     var s = Math.max(0, Math.floor(ms / 1000));
     var m = Math.floor(s / 60), ss = s % 60;
@@ -629,7 +642,8 @@
       '<div class="step"><span class="step-n">03</span><span class="step-b">At <b>:51</b> the system draws <b>5 lucky numbers</b> with a seeded draw (not plain random).</span></div>' +
       '<div class="step"><span class="step-n">04</span><span class="step-b">From <b>:52</b> check results — winnings land in your <b>Wallet</b> automatically. New round at the top of the hour.</span></div>' +
       "</div>" +
-      '<div class="notice"><h3>Prize table</h3><p>1 match · ' + money(1) + ' &nbsp;·&nbsp; 2 matches · ' + money(50) + ' &nbsp;·&nbsp; 3 matches · ' + money(100) + ' &nbsp;·&nbsp; 4 matches · ' + money(500) + ' &nbsp;·&nbsp; 5 matches · ' + money(10000) + "</p></div>" +
+      '<div class="notice"><h3>Prize table</h3><p>Match numbers on your ticket against the 5 drawn numbers. Winnings credit automatically.</p></div>' +
+      prizeTableHtml() +
       "</div>",
       "/", ""
     );
@@ -645,10 +659,13 @@
       "<li>Entries open <b>:00–:50</b> only. Max <b>" + MAX_TICKETS_PER_ROUND + " free tickets</b> per user per round.</li>" +
       "<li>Each ticket holds <b>5 different numbers</b> from 1–100. Ticket ID is <b>round ID + 10 random digits</b> (never in order).</li>" +
       "<li>At <b>:51</b> the system draws 5 numbers using a <b>seeded draw</b> (SHA-hash of the round ID + draw secret → seeded PRNG). Same round always gives the same numbers — verifiable, not clickable random.</li>" +
-      "<li>Winners paid by matches: <b>1 → " + money(1) + " · 2 → " + money(50) + " · 3 → " + money(100) + " · 4 → " + money(500) + " · 5 → " + money(10000) + "</b>.</li>" +
+      "<li>Winners are paid per matches on a single ticket — see the prize table below.</li>" +
       "<li>Results show <b>:52–:59</b> with winning numbers + top 10 winners (5 → 2 matches). Full 5 → 1 list lives under Previous Draws.</li>" +
       "<li>Winnings credit automatically to your mini-app balance. Withdrawals from <b>" + money(WITHDRAW_MIN) + "</b>.</li>" +
       "</ul>" +
+      '<div class="spacer"></div>' +
+      '<div class="sec-head"><h2 style="font-size:20px">Prize table</h2></div>' +
+      prizeTableHtml() +
       '<div class="notice"><h3>Fairness note</h3><p>The draw seed includes a server secret, so numbers can&apos;t be predicted before :51 — but anyone can re-run the published algorithm on the round ID afterwards to verify the result.</p></div>' +
       "</div>",
       "/", ""
