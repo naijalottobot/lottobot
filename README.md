@@ -168,7 +168,18 @@ node -e "const s=require('./server.js'); console.log(s.seededDraw('NG18092026A')
 Same round ID + same `DRAW_SECRET` always gives the same 5 numbers — anyone can
 re-run this to audit a result.
 
-## 5. Monetag ads (later)
+## 5. Monetag ads (rewarded + verified)
 
-A `Sponsored` block sits at the bottom of the Wallet page — swap it for the
-Monetag Telegram-ads snippet when ready.
+- The SDK tag (zone `11837081`) is already in `index.html`.
+- A rewarded interstitial shows before a user's **2nd and 4th ticket** of each
+  round. The ticket is always issued even if the ad is blocked or fails.
+- The app tags each ad with its placement (`ticket2` / `ticket4`) and the
+  Telegram ID, so Monetag reports back exactly which slot monetized.
+- **Server-side postbacks (verified revenue):** in your Monetag dashboard,
+  set the postback URL to
+  `https://YOUR-API.onrender.com/api/monetag/postback?key=YOUR_KEY`
+  where `YOUR_KEY` equals the backend's `MONETAG_POSTBACK_KEY` env var
+  (leave it empty only while testing). Every confirmed impression/click is
+  stored and shows in the admin dashboard under **Ad revenue**.
+- The old `Sponsored` block at the bottom of the Wallet page is still reserved
+  for a future banner slot.

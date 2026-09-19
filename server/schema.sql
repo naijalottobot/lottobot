@@ -62,3 +62,17 @@ CREATE TABLE IF NOT EXISTS activity (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_activity_user ON activity (tg_id, id DESC);
+
+/* Monetag server-side postbacks — verified ad impressions/clicks. */
+CREATE TABLE IF NOT EXISTS ad_events (
+  id BIGSERIAL PRIMARY KEY,
+  tg_id TEXT NOT NULL DEFAULT '',
+  ymid TEXT NOT NULL DEFAULT '',
+  event TEXT NOT NULL DEFAULT 'impression',
+  zone_id TEXT NOT NULL DEFAULT '',
+  request_var TEXT NOT NULL DEFAULT '',
+  estimated_price DOUBLE PRECISION NOT NULL DEFAULT 0,
+  raw JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_ad_events_created ON ad_events (created_at DESC);

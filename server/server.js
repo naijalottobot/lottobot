@@ -13,7 +13,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-for (const k of ["BOT_TOKEN", "ADMIN_KEY", "DATABASE_URL", "DRAW_SECRET", "MODE"]) {
+for (const k of ["BOT_TOKEN", "ADMIN_KEY", "DATABASE_URL", "DRAW_SECRET", "MODE", "MONETAG_POSTBACK_KEY"]) {
   if (process.env[k]) process.env[k] = process.env[k].trim();
 }
 
@@ -211,6 +211,32 @@ async function schedulerTick() {
   } catch (e) { console.error("[scheduler]", e.message); }
 }
 
+/* ================= MONETAG SERVER-SIDE POSTBACKS =================
+   In your Monetag dashboard, set the postback URL to:
+     https://YOUR-API.onrender.com/api/monetag/postback?key=YOUR_POSTBACK_KEY
+   Monetag calls it (GET) for each verified impression/click, e.g.:
+     ?ymid=user123&event=click&zone_id=11837081&request_var=ticket2&telegram_id=123&estimated_price=0.0023
+   Set MONETAG_POSTBACK_KEY in .env (and in the dashboard URL) so strangers
+   can't forge events. Leave it empty only for initial testing. */
+function monetagPostback(req, res) {
+  const secret = process.env.MONETAG_POSTBACK_KEY || "";
+  const q = req.query || {};
+  if (secret && q.key !== secret) return res.status(401).send("bad key");
+  const tgId = String(q.telegram_id || q.tgId || "").slice(0, 64);
+  const event = String(q.event || "impression").slice(0, 20);
+  const zone = String(q.zone_id || q.zone || "").slice(0, 32);
+  const rvar = String(q.request_var || "").slice(0, 60);
+  const ymid = String(q.ymid || "").slice(0, 80);
+  const price = Number(q.estimated_price) || 0;
+  db.q(
+    "INSERT INTO ad_events (tg_id, ymid, event, zone_id, request_var, estimated_price, raw) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)",
+    [tgId, ymid, event, zone, rvar, price, JSON.stringify(q)]
+  ).catch((e) => console.error("[postback]", e.message));
+  res.status(200).send("ok");
+}
+app.get("/api/monetag/postback", monetagPostback);
+app.post("/api/monetag/postback", monetagPostback);
+
 /* ================= PUBLIC API ================= */
 app.get("/", (req, res) => res.json({ ok: true, service: "LOTTO backend", health: "/api/health", admin: "/admin" }));
 app.get("/api/health", (req, res) => res.json({ ok: true, mode: MODE, db: !!process.env.DATABASE_URL, time: new Date().toISOString() }));
@@ -376,7 +402,17 @@ app.get("/api/admin/overview", requireAdmin, async (req, res) => {
               (SELECT COALESCE(SUM(prize), 0)::int FROM tickets) AS paid_out,
               (SELECT COUNT(*)::int FROM tickets WHERE matches >= 1) AS winners,
               (SELECT COUNT(*)::int FROM withdrawals WHERE status = 'pending') AS pending_count,
-              (SELECT COALESCE(SUM(amount), 0)::int FROM withdrawals WHERE status = 'pending') AS pending_sum`
+              (SELECT COALESCE(SUM(amount), 0)::int FROM withdrawals WHERE status = 'pending') AS pending_sum,
+              (SELECT COUNT(*)::int FROM ad_events WHERE event = 'impression') AS ad_impressions,
+              (SELECT COUNT(*)::int FROM ad_events WHERE event = 'click') AS ad_clicks,
+              (SELECT COALESCE(SUM(estimated_price), 0)::float FROM ad_events) AS ad_revenue`
+    );
+    const adRecent = await db.q(
+      `SELECT tg_id AS "tgId", event, zone_id AS "zone", request_var AS "placement",
+              estimated_price AS "revenue", created_at AS "createdAt"
+         FROM ad_events
+        ORDER BY id DESC
+        LIMIT 20`
     );
     const users = await db.q(
       `SELECT u.tg_id AS "tgId", u.name, u.balance,
@@ -412,7 +448,7 @@ app.get("/api/admin/overview", requireAdmin, async (req, res) => {
         ORDER BY id DESC
         LIMIT 200`
     );
-    res.json({ ok: true, totals: totals.rows[0], users: users.rows, rounds: rounds.rows, withdrawals: withdrawals.rows, topups: topups.rows });
+    res.json({ ok: true, totals: totals.rows[0], users: users.rows, rounds: rounds.rows, withdrawals: withdrawals.rows, topups: topups.rows, adRecent: adRecent.rows });
   } catch (err) { dbDown(res, err); }
 });
 

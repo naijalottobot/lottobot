@@ -579,6 +579,46 @@
   function submitEntry(rid, nums) {
     if (!validPick(nums)) { toast("Pick 5 different numbers, 1–100"); return; }
     /* Keep the numbers in the order the user entered them. */
+    var roundMine = myTickets.filter(function (t) { return t.roundId === rid; }).length;
+    /* Rewarded interstitial before the 2nd and 4th ticket of each round.
+       The ticket is always issued — if the SDK is blocked or fails,
+       we fall through (plus a 15s safety timeout). */
+    if ((roundMine === 1 || roundMine === 3) && typeof show_11837081 === "function") {
+      toast("Short ad, then your ticket…");
+      var done = false;
+      var go = function () { if (!done) { done = true; issueEntry(rid, nums); } };
+      showRewarded(roundMine === 1 ? "ticket2" : "ticket4").then(go).catch(go);
+      setTimeout(go, 15000);
+      return;
+    }
+    issueEntry(rid, nums);
+  }
+
+  /* Rewarded interstitial. Passes placement + Telegram ID so Monetag's
+     server-side postback can report back which slot monetized for whom.
+     Old SDKs ignore the argument object — hence the no-arg fallback. */
+  function showRewarded(placement) {
+    return new Promise(function (resolve) {
+      var settled = false;
+      var done = function () { if (!settled) { settled = true; resolve(); } };
+      try {
+        var args = { request_var: placement };
+        try { if (myId() && myId() !== "guest") args.telegram_id = myId(); } catch (e) {}
+        var p = show_11837081(args);
+        if (p && typeof p.then === "function") p.then(done).catch(done);
+        else done();
+      } catch (e1) {
+        try {
+          var p2 = show_11837081();
+          if (p2 && typeof p2.then === "function") p2.then(done).catch(done);
+          else done();
+        } catch (e2) { done(); }
+      }
+      setTimeout(done, 15000);
+    });
+  }
+
+  function issueEntry(rid, nums) {
     if (API_BASE) {
       toast("Sending entry…");
       apiPost("/api/tickets", { numbers: nums }).then(function (r) {
