@@ -156,11 +156,13 @@
   var drawsPage = 1, ticketsPage = 1, walletPage = 1;
 
   var tg = null, tgUser = null;
+  var lastSyncAt = null, lastSyncOk = false;
   function initTelegram() {
     tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
     if (!tg) return;
     try { tg.ready(); tg.expand(); } catch (e) {}
     tgUser = (tg.initDataUnsafe && tg.initDataUnsafe.user) || null;
+    syncServer(); /* identity just arrived — sync THIS account, not the guest one */
     router();
   }
   function myName() {
@@ -291,14 +293,31 @@
   var serverRound = null, serverTop = [];
   function syncServer() {
     if (!API_BASE) return;
+    var who = myId(); /* ignore late responses meant for a previous identity */
     apiGet("/api/round/current").then(function (r) {
       if (r && r.ok) { serverRound = r; if (Array.isArray(r.top10)) serverTop = r.top10; tick(); }
     });
     apiGet("/api/me").then(function (me) {
-      if (me && me.ok) {
-        if (typeof me.balance === "number") { balance = me.balance; saveAll(); router(); }
+      if (myId() !== who) return;
+      lastSyncAt = new Date();
+      if (me && me.ok && typeof me.balance === "number") {
+        lastSyncOk = true;
+        if (me.balance !== balance) {
+          balance = me.balance;
+          saveAll();
+          router();
+        }
+      } else {
+        lastSyncOk = false;
       }
     });
+  }
+  function syncLine() {
+    if (!API_BASE) return "Demo mode — balance is stored on this device.";
+    if (!lastSyncAt) return "Connecting to server…";
+    var t = "";
+    try { t = lastSyncAt.toLocaleTimeString(); } catch (e) {}
+    return lastSyncOk ? "Balance updated " + t + "." : "Couldn't reach server — showing saved balance.";
   }
 
   /* ================= HELPERS ================= */
@@ -990,6 +1009,7 @@
       '<div class="page fade">' +
       '<div class="sec-head"><h2>Wallet</h2></div>' +
       '<div class="bal-card"><div class="bal-k">Mini App Balance</div><div class="bal-v">' + money(balance) + '</div><div class="bal-sub">Get 5/5 matches - win <b>' + prizeFor(5).toLocaleString("en-NG") + " naira</b>. 4/5 matches wins <b>" + prizeFor(4).toLocaleString("en-NG") + " naira</b>. 3/5 matches wins <b>" + prizeFor(3).toLocaleString("en-NG") + " naira</b>. 2/5 matches win <b>" + prizeFor(2).toLocaleString("en-NG") + " naira</b> and 1/5 matches wins <b>" + prizeFor(1).toLocaleString("en-NG") + " naira</b>.</div></div>" +
+      '<p class="muted small" style="margin:8px 2px 0">' + syncLine() + "</p>" +
       '<div class="spacer"></div>' +
       '<div class="sec-head"><h2 style="font-size:20px">Withdraw</h2><span class="count">min ' + money(WITHDRAW_MIN) + "</span></div>" +
       '<p class="muted small" style="margin-bottom:4px">Enter the bank details where you want to receive your payout, then request.</p>' +
