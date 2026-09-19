@@ -116,6 +116,10 @@
 
       <h2>Users</h2>
       <p class="sub">Balance, tickets and total winnings per user.</p>
+      <div class="tabs">
+        <button id="tabAll" class="on">All users</button>
+        <button id="tabRich">₦400 &amp; above</button>
+      </div>
       <div class="box" style="margin-bottom:10px"><input id="uSearch" placeholder="Search Telegram ID or name…" /></div>
       <div style="overflow-x:auto"><table>
         <thead><tr><th>Telegram ID</th><th>Name</th><th class="num">Balance</th><th class="num">Tickets</th><th class="num">Winnings</th><th>Joined</th></tr></thead>
@@ -169,6 +173,7 @@
   var KEY = "";
   var DATA = null;
   var wdTab = "pending";
+  var userTab = "all";
   var PER = 25;
   var PG = { users: 1, rounds: 1, wd: 1, topups: 1 };
   var userQ = "";
@@ -294,6 +299,7 @@
   function renderUsers() {
     var q = userQ.toLowerCase();
     var list = (DATA.users || []).filter(function (u) {
+      if (userTab === "rich" && Number(u.balance) < 400) return false;
       return !q || (u.tgId + " " + (u.name || "")).toLowerCase().indexOf(q) !== -1;
     });
     var p = pageSlice(list, "users");
@@ -365,6 +371,20 @@
       if (!j.ok) throw new Error(j.error || "refresh failed");
       DATA = j; render(); toast("Refreshed.", true);
     }).catch(function (e) { toast("Refresh failed: " + e.message, false); });
+  });
+  document.getElementById("tabAll").addEventListener("click", function () {
+    userTab = "all";
+    PG.users = 1;
+    document.getElementById("tabAll").classList.add("on");
+    document.getElementById("tabRich").classList.remove("on");
+    renderUsers();
+  });
+  document.getElementById("tabRich").addEventListener("click", function () {
+    userTab = "rich";
+    PG.users = 1;
+    document.getElementById("tabRich").classList.add("on");
+    document.getElementById("tabAll").classList.remove("on");
+    renderUsers();
   });
   document.getElementById("tabP").addEventListener("click", function () {
     wdTab = "pending";
