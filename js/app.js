@@ -325,7 +325,8 @@
       wallet: '<rect x="3.5" y="6.5" width="17" height="12.5" rx="3"/><path d="M3.5 10h17"/><circle cx="16.5" cy="14.5" r="1.2" fill="currentColor" stroke="none"/>',
       info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><circle cx="12" cy="8" r="0.6" fill="currentColor" stroke="none"/>',
       book: '<path d="M5 5h11a3 3 0 0 1 3 3v11H8a3 3 0 0 1-3-3z"/><path d="M5 5v11a3 3 0 0 0 3 3"/>',
-      clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'
+      clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+      chat: '<path d="M4 5.5h16v10H9.5L4 19.5z"/><path d="M8 10h8M8 12.8h5"/>'
     }[n] || "";
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + body + "</svg>";
   }
@@ -464,7 +465,7 @@
       '<div class="hero fade">' +
       '<div class="kicker">Free Hourly Draw</div>' +
       "<h1>Win <span class='amt'>" + money(10000) + "</span><br/><em>every hour.</em></h1>" +
-      '<p class="lede">' + (greet ? "Good luck, " + greet + ". " : "") + "Pick 5 numbers from 1–100. Free entry, new draw round every hour.</p>" +
+      '<p class="lede">' + (greet ? "Good luck, " + greet + ". " : "") + "Pick 5 numbers from 1–100 and win " + money(10000) + " naira when all 5 numbers play on your ticket. Free entry, new draw round every hour.</p>" +
       '<div class="jackpot"><div class="jp-k">This Hour&apos;s Jackpot</div><div class="jp-v">' + money(10000) + " <small>5/5</small></div>" +
       '<div class="jp-sub">Draw <b>' + esc(rid) + "</b> · status: <b>" + esc(st) + "</b></div>" +
       '<span class="jp-round">Balance · ' + money(balance) + "</span></div>" +
@@ -475,6 +476,7 @@
       '<button class="menu-card" data-nav="/rules"><span class="menu-ic gold">' + icon("book") + '</span><span class="menu-tx"><span class="menu-t">Rules</span><span class="menu-s" style="display:block">Prize table &amp; fair draw</span></span><span class="chev">&#8250;</span></button>' +
       '<button class="menu-card" data-nav="/tickets"><span class="menu-ic">' + icon("ticket") + '</span><span class="menu-tx"><span class="menu-t">My Tickets</span><span class="menu-s" style="display:block">' + myTickets.length + " ticket" + (myTickets.length === 1 ? "" : "s") + " total</span></span><span class=\"chev\">&#8250;</span></button>" +
       '<button class="menu-card" data-nav="/wallet"><span class="menu-ic gold">' + icon("wallet") + '</span><span class="menu-tx"><span class="menu-t">Wallet · ' + money(balance) + '</span><span class="menu-s" style="display:block">Withdraw from ' + money(WITHDRAW_MIN) + "</span></span><span class=\"chev\">&#8250;</span></button>" +
+      '<button class="menu-card" data-nav="/contact"><span class="menu-ic">' + icon("chat") + '</span><span class="menu-tx"><span class="menu-t">Contact Admin</span><span class="menu-s" style="display:block">Questions · enquiries · payment support</span></span><span class="chev">&#8250;</span></button>' +
       "</div>" +
       '<p class="muted small" style="margin-top:18px;text-align:center;letter-spacing:2px;text-transform:uppercase">Free play · Draws every hour · WAT</p>' +
       "</div>",
@@ -539,7 +541,7 @@
     screen(
       '<div class="page fade">' +
       '<div class="sec-head"><h2>Play Lotto</h2><span class="count">Free entry</span></div>' +
-      '<p class="sub">Jackpot ' + money(10000) + " for 5/5 · entries close " + roundCloseTime(rid) + ".</p>" +
+      '<p class="sub">Win ' + money(10000) + " naira Jackpot when all 5 numbers play.</p>" +
       sb.html + formHtml + resultHtml + mineHtml +
       "</div>",
       "/", "play"
@@ -710,7 +712,7 @@
     screen(
       '<div class="page fade">' +
       '<div class="sec-head"><h2>Previous Draws</h2><span class="count">' + list.length + "</span></div>" +
-      '<p class="sub">Tap a draw for winning numbers + all winners (5 → 1).</p>' +
+      '<p class="sub">Tap a draw for winning numbers + all winners from 5/5 matches to 1/5 matches.</p>' +
       '<div class="rows">' + items.map(function (r) {
         var w5 = r.winners.filter(function (w) { return w.matches === 5; }).length;
         var wtot = r.winners.length;
@@ -742,7 +744,7 @@
       screen(
         '<div class="page fade">' +
         '<div class="sec-head"><h2>Previous Draws</h2><span class="count">live</span></div>' +
-        '<p class="sub">Tap a draw for winning numbers + all winners (5 → 1).</p>' +
+        '<p class="sub">Tap a draw for winning numbers + all winners from 5/5 matches to 1/5 matches.</p>' +
         (serverDraws.length ? '<div class="rows">' + serverDraws.map(function (x) {
           return '<button class="row-card" data-nav="/draw/' + esc(x.roundId) + '"><span><span class="t" style="display:block">' + esc(x.roundId) + '</span><span class="s">' +
             (x.winning ? "★ " + x.winning.join(" · ") + "<br/>" : "") + esc(x.winners + " winning tickets") + "</span></span>" + '<span class="chev">&#8250;</span></button>';
@@ -835,7 +837,7 @@
     screen(
       '<div class="page fade">' +
       '<div class="sec-head"><h2>My Tickets</h2><span class="count">' + list.length + "</span></div>" +
-      '<p class="sub">Newest first · 20 per page.</p>' +
+      '<p class="sub">Newest Tickets. 20 tickets per page.</p>' +
       (list.length ? '<div class="cards">' + items.map(function (t) {
         var rec = roundsCache[t.roundId];
         return ticketCard(t, rec && rec.winning);
@@ -858,7 +860,7 @@
     screen(
       '<div class="page fade">' +
       '<div class="sec-head"><h2>My Tickets</h2><span class="count">' + serverTickets.length + "</span></div>" +
-      '<p class="sub">Newest first · 20 per page.</p>' +
+      '<p class="sub">Newest Tickets. 20 tickets per page.</p>' +
       (serverTickets.length ? '<div class="cards">' + items.map(function (t) {
         return ticketCard({ ticketId: t.ticketId, roundId: t.roundId, numbers: t.numbers, matches: t.matches, prize: t.prize, when: t.created_at, name: myName() }, t.winning);
       }).join("") + "</div>" +
@@ -885,7 +887,7 @@
     screen(
       '<div class="page fade">' +
       '<div class="sec-head"><h2>Wallet</h2></div>' +
-      '<div class="bal-card"><div class="bal-k">Mini App Balance</div><div class="bal-v">' + money(balance) + '</div><div class="bal-sub">Winnings credit automatically · withdraw from <b>' + money(WITHDRAW_MIN) + "</b></div></div>" +
+      '<div class="bal-card"><div class="bal-k">Mini App Balance</div><div class="bal-v">' + money(balance) + '</div><div class="bal-sub">Get 5/5 matches - win <b>' + prizeFor(5).toLocaleString("en-NG") + " naira</b>. 4/5 matches wins <b>" + prizeFor(4).toLocaleString("en-NG") + " naira</b>. 3/5 matches wins <b>" + prizeFor(3).toLocaleString("en-NG") + " naira</b>. 2/5 matches win <b>" + prizeFor(2).toLocaleString("en-NG") + " naira</b> and 1/5 matches wins <b>" + prizeFor(1).toLocaleString("en-NG") + " naira</b>.</div></div>" +
       '<div class="spacer"></div>' +
       '<div class="sec-head"><h2 style="font-size:20px">Withdraw</h2><span class="count">min ' + money(WITHDRAW_MIN) + "</span></div>" +
       '<p class="muted small" style="margin-bottom:4px">Enter the bank details where you want to receive your payout, then request.</p>' +
@@ -937,6 +939,22 @@
     });
   }
 
+  function contactAdmin() {
+    var myId = tgUser && tgUser.id ? String(tgUser.id) : null;
+    screen(
+      '<div class="page fade">' +
+      '<div class="sec-head"><h2>Contact Admin</h2></div>' +
+      '<p class="sub">Contact admin for all questions, enquiries and payment support.</p>' +
+      '<div class="panel">' +
+      '<div class="prow"><span class="k">Telegram<small>Tap to chat</small></span><span class="v" style="font-size:17px"><a href="https://t.me/ponyed838" target="_blank" rel="noopener" style="color:var(--purple)">@ponyed838</a></span></div>' +
+      (myId ? '<div class="prow"><span class="k">Your Telegram ID<small>Quote it to admin</small></span><span class="v" style="font-size:17px">' + esc(myId) + "</span></div>" : "") +
+      "</div>" +
+      '<div class="notice"><h3>New features coming soon</h3><p>More ways to play and win are on the way. Stay tuned.</p></div>' +
+      "</div>",
+      "/", ""
+    );
+  }
+
   /* ================= ROUTER ================= */
   function router() {
     sweepDemo();
@@ -949,6 +967,7 @@
     if (parts[0] === "draws") { draws(); return; }
     if (parts[0] === "draw" && parts[1]) { drawDetail(decodeURIComponent(parts[1])); return; }
     if (parts[0] === "tickets") { tickets(); return; }
+    if (parts[0] === "contact") { contactAdmin(); return; }
     if (parts[0] === "wallet") { wallet(); return; }
     welcome();
   }
@@ -1035,7 +1054,7 @@
     screen(
       '<div class="page fade">' +
       '<div class="sec-head"><h2>Previous Draws</h2><span class="count">live</span></div>' +
-      '<p class="sub">Tap a draw for winning numbers + all winners (5 → 1).</p>' +
+      '<p class="sub">Tap a draw for winning numbers + all winners from 5/5 matches to 1/5 matches.</p>' +
       (serverDraws.length ? '<div class="rows">' + serverDraws.map(function (x) {
         return '<button class="row-card" data-nav="/draw/' + esc(x.roundId) + '"><span><span class="t" style="display:block">' + esc(x.roundId) + '</span><span class="s">' +
           (x.winning ? "★ " + x.winning.join(" · ") + "<br/>" : "") + esc(x.winners + " winning tickets") + "</span></span>" + '<span class="chev">&#8250;</span></button>';
