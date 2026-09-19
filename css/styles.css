@@ -43,7 +43,7 @@ body { min-height: 100vh; }
 button { font-family: inherit; cursor: pointer; background: none; border: none; color: inherit; }
 input { font-family: inherit; }
 
-#app { max-width: var(--maxw); margin: 0 auto; min-height: 100vh; padding-bottom: calc(var(--tab-h) + 30px); position: relative; z-index: 1; }
+#app { max-width: var(--maxw); margin: 0 auto; min-height: 100vh; padding-bottom: 24px; position: relative; z-index: 1; }
 
 /* Floating background bubbles */
 .bg-bubbles { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
@@ -108,12 +108,10 @@ input { font-family: inherit; }
 
 /* ================= Tab bar ================= */
 .tabbar {
-  position: fixed;
-  left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom));
-  z-index: 40;
+  position: static;
   display: flex;
-  max-width: calc(var(--maxw) - 24px);
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 22px 16px 0;
   min-height: var(--tab-h);
   padding: 10px 8px;
   background: rgba(255, 255, 255, 0.96);
