@@ -657,7 +657,7 @@
       '<div class="sec-head"><h2>Rules</h2></div>' +
       '<p class="sub">The official rules of play. Please read them carefully before entering a draw.</p>' +
       '<ul class="blist">' +
-      "<li><b>Draw rounds.</b> Draws take place every hour, on the hour (West Africa Time). Each round carries a unique Round ID in the format <b>NG + day, month, year + an hour letter</b> — A covers 12:00 AM–1:00 AM through X for 11:00 PM–12:00 AM. Example: <b>NG18092026A</b>.</li>" +
+      "<li><b>Draw rounds.</b> Draws take place every hour, on the hour (West Africa Time). Each round carries a unique Round ID. Example: <b>NG18092026A</b>.</li>" +
       "<li><b>Entries.</b> Entry is free and open during the first 50 minutes of each hour only. Each user may submit a maximum of <b>" + MAX_TICKETS_PER_ROUND + " tickets per round</b>. Every ticket contains <b>5 distinct numbers between 1 and 100</b>, kept in the order entered.</li>" +
       "<li><b>Tickets.</b> Each entry is issued a unique Ticket ID consisting of the Round ID followed by <b>10 randomly generated digits</b> (for example, NG18092026A7391048261). Ticket numbers are random and never sequential.</li>" +
       "<li><b>The draw.</b> At 51 minutes past the hour, entries close and <b>5 winning numbers from 1 to 100</b> are drawn. The outcome of every draw is final.</li>" +
@@ -785,7 +785,7 @@
     screen(
       '<div class="page fade">' +
       '<div class="sec-head"><h2 style="font-size:23px">' + esc(rid) + '</h2><span class="count">' + winners.length + " winners</span></div>" +
-      '<p class="sub">All winning tickets · 5 → 1 matches · 20 per page.</p>' +
+      '<p class="sub">All winning tickets · 20 tickets per page.</p>' +
       (rec.winning ? '<div class="balls" id="drawWinBalls"></div><button class="replay-btn" data-replay="drawWinBalls">Replay reveal</button>' : '<p class="muted small">Draw runs at ' + roundDrawTime(rid) + ", results at " + roundResultsTime(rid) + ".</p>") +
       '<div class="spacer"></div>' +
       '<p class="muted small" style="margin-bottom:10px">Green ball = matched number · grey = missed.</p>' +
@@ -806,7 +806,7 @@
     screen(
       '<div class="page fade">' +
       '<div class="sec-head"><h2 style="font-size:23px">' + esc(rid) + '</h2><span class="count">' + serverDrawWinners.length + " winners</span></div>" +
-      '<p class="sub">All winning tickets · 5 → 1 matches · 20 per page.</p>' +
+      '<p class="sub">All winning tickets · 20 tickets per page.</p>' +
       (serverDrawWinning ? '<div class="balls" id="drawWinBalls"></div><button class="replay-btn" data-replay="drawWinBalls">Replay reveal</button>' : '<p class="muted small">Draw pending.</p>') +
       '<div class="spacer"></div>' +
       '<p class="muted small" style="margin-bottom:10px">Green ball = matched number · grey = missed.</p>' +
