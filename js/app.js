@@ -18,7 +18,7 @@
   var APP_MODE = "live";
   var LIVE_API = "https://lottobot-cto8.onrender.com";
   var API_BASE = APP_MODE === "live" ? LIVE_API : "";
-  var APP_VERSION = "15";
+  var APP_VERSION = "18";
   var SYM = "₦";
   var DEMO_SECRET = "lottobot-demo-v1";
   var PRIZES = { 1: 1, 2: 50, 3: 100, 4: 500, 5: 10000 };
@@ -275,15 +275,27 @@
     if (extra) for (var k in extra) p[k] = extra[k];
     return Object.keys(p).map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(p[k]); }).join("&");
   }
+  /* Timeout that works even in old webviews without AbortController:
+     the race always settles; AbortController just frees the socket early. */
   function fetchTimeout(url, opts, ms) {
     ms = ms || 25000;
-    if (typeof AbortController === "undefined") return fetch(url, opts);
-    var ctl;
-    try { ctl = new AbortController(); } catch (e) { return fetch(url, opts); }
-    var timer = setTimeout(function () { try { ctl.abort(); } catch (e) {} }, ms);
     opts = opts || {};
-    try { opts.signal = ctl.signal; } catch (e) {}
-    return fetch(url, opts).then(function (r) { clearTimeout(timer); return r; }, function (e) { clearTimeout(timer); throw e; });
+    var ctl = null;
+    if (typeof AbortController !== "undefined") {
+      try { ctl = new AbortController(); opts.signal = ctl.signal; } catch (e) { ctl = null; }
+    }
+    var timer = null;
+    var p;
+    try { p = fetch(url, opts); } catch (e) { return Promise.reject(e); }
+    var raced = Promise.race([p, new Promise(function (res, rej) {
+      timer = setTimeout(function () {
+        if (ctl) { try { ctl.abort(); } catch (e) {} }
+        var err = new Error("timeout");
+        err.code = "ETIMEOUT";
+        rej(err);
+      }, ms);
+    })]);
+    return raced.then(function (r) { if (timer) clearTimeout(timer); return r; }, function (e) { if (timer) clearTimeout(timer); throw e; });
   }
   function apiGet(path) {
     if (!API_BASE || typeof fetch === "undefined") return Promise.resolve(null);
