@@ -18,7 +18,7 @@
   var APP_MODE = "live";
   var LIVE_API = "https://lottobot-cto8.onrender.com";
   var API_BASE = APP_MODE === "live" ? LIVE_API : "";
-  var APP_VERSION = "20";
+  var APP_VERSION = "21";
   var SYM = "₦";
   var DEMO_SECRET = "lottobot-demo-v1";
   var PRIZES = { 1: 1, 2: 50, 3: 100, 4: 500, 5: 10000 };
@@ -339,11 +339,12 @@
     });
     apiGet("/api/me").then(function (me) {
       if (myId() !== who) return;
-      if (me && me.ok && typeof me.balance === "number") {
+      var b = me && me.ok ? Number(me.balance) : NaN; /* server BIGINTs may arrive as strings */
+      if (isFinite(b)) {
         lastSyncAt = new Date();
         lastSyncOk = true;
-        if (me.balance !== balance) {
-          balance = me.balance;
+        if (b !== balance) {
+          balance = b;
           saveAll();
           router();
         } else {
@@ -708,7 +709,8 @@
       toast("Sending entry…");
       apiPost("/api/tickets", { numbers: nums }).then(function (r) {
         if (r && r.ok) {
-          balance = typeof r.balance === "number" ? r.balance : balance;
+          var nb = Number(r.balance);
+          if (isFinite(nb)) balance = nb;
           myTickets.unshift({ ticketId: r.ticket.ticketId, roundId: r.ticket.roundId, numbers: r.ticket.numbers, matches: null, prize: null, when: new Date().toLocaleString(), name: myName() });
           addHistory("Lotto entry · " + r.ticket.ticketId, 0, true);
           saveAll();
@@ -1101,7 +1103,7 @@
       var dest = bank + " · " + acctNum + " · " + accName;
       if (API_BASE) {
         apiPost("/api/withdraw", { amount: amt, bank: bank, accountNumber: acctNum, accountName: accName }).then(function (r) {
-          if (r && r.ok) { balance = r.balance; saveAll(); addHistory("Withdrawal request · " + dest, amt, false); saveAll(); toast("Request sent — pending payout"); wallet(); }
+          if (r && r.ok) { var wb = Number(r.balance); if (isFinite(wb)) balance = wb; saveAll(); addHistory("Withdrawal request · " + dest, amt, false); saveAll(); toast("Request sent — pending payout"); wallet(); }
           else toast(r && r.error ? r.error : "Request failed");
         });
         return;

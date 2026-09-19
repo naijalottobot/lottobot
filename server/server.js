@@ -249,7 +249,7 @@ app.get("/api/me", async (req, res) => {
     await db.q("INSERT INTO users (tg_id, name) VALUES ($1, $2) ON CONFLICT (tg_id) DO UPDATE SET name = EXCLUDED.name, updated_at = now()", [id.tgId, id.name]);
     const u = await db.q("SELECT balance FROM users WHERE tg_id = $1", [id.tgId]);
     const c = await db.q("SELECT COUNT(*)::int AS c FROM tickets WHERE tg_id = $1", [id.tgId]);
-    res.json({ ok: true, balance: u.rows[0].balance, tickets: c.rows[0].c });
+    res.json({ ok: true, balance: Number(u.rows[0].balance), tickets: c.rows[0].c });
   } catch (err) { dbDown(res, err); }
 });
 
@@ -300,7 +300,7 @@ app.post("/api/tickets", async (req, res) => {
     await db.q("INSERT INTO tickets (ticket_id, round_id, tg_id, name, numbers) VALUES ($1, $2, $3, $4, $5::jsonb)", [ticketId, rid, id.tgId, name, JSON.stringify(nums)]);
     await db.q("INSERT INTO activity (tg_id, what, amount, plus) VALUES ($1, $2, 0, TRUE)", [id.tgId, "Lotto entry · " + ticketId]);
     const u = await db.q("SELECT balance FROM users WHERE tg_id = $1", [id.tgId]);
-    res.json({ ok: true, ticket: { ticketId, roundId: rid, numbers: nums }, balance: u.rows[0].balance });
+    res.json({ ok: true, ticket: { ticketId, roundId: rid, numbers: nums }, balance: Number(u.rows[0].balance) });
   } catch (err) { dbDown(res, err); }
 });
 
@@ -388,7 +388,7 @@ app.post("/api/withdraw", async (req, res) => {
     await db.q("INSERT INTO withdrawals (tg_id, amount, account, bank, account_number, account_name, status) VALUES ($1, $2, $3, $4, $5, $6, 'pending')", [id.tgId, amount, account, bank, accountNumber, accountName]);
     await db.q("INSERT INTO activity (tg_id, what, amount, plus) VALUES ($1, $2, $3, FALSE)", [id.tgId, "Withdrawal request · " + account, amount]);
     const after = await db.q("SELECT balance FROM users WHERE tg_id = $1", [id.tgId]);
-    res.json({ ok: true, balance: after.rows[0].balance });
+    res.json({ ok: true, balance: Number(after.rows[0].balance) });
   } catch (err) { dbDown(res, err); }
 });
 
@@ -484,12 +484,12 @@ app.post("/api/admin/topup", requireAdmin, async (req, res) => {
   try {
     await db.q("INSERT INTO users (tg_id) VALUES ($1) ON CONFLICT (tg_id) DO NOTHING", [tgId]);
     const u = await db.q("SELECT balance FROM users WHERE tg_id = $1", [tgId]);
-    if (u.rows[0].balance + amount < 0) return res.status(400).json({ ok: false, error: "insufficient balance" });
+    if (Number(u.rows[0].balance) + amount < 0) return res.status(400).json({ ok: false, error: "insufficient balance" });
     await db.q("UPDATE users SET balance = balance + $1, updated_at = now() WHERE tg_id = $2", [amount, tgId]);
     const label = (amount > 0 ? "Admin top-up" : "Admin deduction") + (note ? " · " + note : "");
     await db.q("INSERT INTO activity (tg_id, what, amount, plus) VALUES ($1, $2, $3, $4)", [tgId, label, Math.abs(amount), amount > 0]);
     const after = await db.q("SELECT balance FROM users WHERE tg_id = $1", [tgId]);
-    res.json({ ok: true, balance: after.rows[0].balance });
+    res.json({ ok: true, balance: Number(after.rows[0].balance) });
   } catch (err) { dbDown(res, err); }
 });
 app.post("/api/admin/withdraw", requireAdmin, async (req, res) => {
