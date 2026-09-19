@@ -18,7 +18,7 @@
   var APP_MODE = "live";
   var LIVE_API = "https://lottobot-cto8.onrender.com";
   var API_BASE = APP_MODE === "live" ? LIVE_API : "";
-  var APP_VERSION = "18";
+  var APP_VERSION = "20";
   var SYM = "₦";
   var DEMO_SECRET = "lottobot-demo-v1";
   var PRIZES = { 1: 1, 2: 50, 3: 100, 4: 500, 5: 10000 };
