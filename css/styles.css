@@ -43,7 +43,7 @@ body { min-height: 100vh; }
 button { font-family: inherit; cursor: pointer; background: none; border: none; color: inherit; }
 input { font-family: inherit; }
 
-#app { max-width: var(--maxw); margin: 0 auto; min-height: 100vh; padding-bottom: 24px; position: relative; z-index: 1; }
+#app { max-width: var(--maxw); margin: 0 auto; min-height: 100vh; padding-bottom: calc(var(--tab-h) + 30px); position: relative; z-index: 1; }
 
 /* Floating background bubbles */
 .bg-bubbles { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
@@ -108,29 +108,31 @@ input { font-family: inherit; }
 
 /* ================= Tab bar ================= */
 .tabbar {
-  position: static;
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 40;
   display: flex;
-  max-width: 100%;
-  margin: 22px 16px 0;
-  min-height: var(--tab-h);
-  padding: 10px 8px;
-  background: rgba(255, 255, 255, 0.96);
-  border-radius: 26px;
-  box-shadow: 0 14px 34px rgba(109, 40, 217, 0.25);
-  border: 3px solid #fff;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  min-height: calc(var(--tab-h) + env(safe-area-inset-bottom));
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 2px solid #e4dcfb;
 }
 .tab {
   flex: 1;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px;
-  font-size: 10px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase;
+  gap: 3px;
+  font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
   color: var(--ink-3);
-  border-radius: 18px;
+  border-radius: 14px;
   padding: 8px 2px;
 }
 .tab svg { width: 24px; height: 24px; }
-.tab.active { background: var(--grad-main); color: #fff; box-shadow: 0 6px 14px rgba(236, 72, 153, 0.4); }
-.tab:active { transform: scale(0.93); }
+.tab.active { color: var(--purple); }
+.tab:active { transform: scale(0.94); }
 
 /* ================= Page / hero ================= */
 .page { padding: 18px 16px 0; animation: rise 0.35s ease; }
