@@ -369,12 +369,84 @@ app.post("/api/withdraw", async (req, res) => {
 /* ================= ADMIN ================= */
 app.get("/api/admin/overview", requireAdmin, async (req, res) => {
   try {
-    const users = await db.q("SELECT COUNT(*)::int AS c, COALESCE(SUM(balance),0)::int AS outstanding FROM users");
-    const rounds = await db.q("SELECT COUNT(*)::int AS c FROM rounds");
-    const tickets = await db.q("SELECT COUNT(*)::int AS c, COALESCE(SUM(prize),0)::int AS paid FROM tickets");
-    const pending = await db.q("SELECT id, tg_id AS \"tgId\", amount, account, bank, account_number AS \"accountNumber\", account_name AS \"accountName\", status, created_at FROM withdrawals WHERE status = 'pending' ORDER BY id DESC LIMIT 50");
-    const recent = await db.q('SELECT round_id AS "roundId", winning, drawn_at AS "drawnAt" FROM rounds ORDER BY hour_start DESC LIMIT 20');
-    res.json({ ok: true, users: users.rows[0], rounds: rounds.rows[0].c, tickets: tickets.rows[0], pending: pending.rows, recent: recent.rows });
+    const totals = await db.q(
+      `SELECT (SELECT COUNT(*)::int FROM users) AS users,
+              (SELECT COUNT(*)::int FROM rounds) AS rounds,
+              (SELECT COUNT(*)::int FROM tickets) AS tickets,
+              (SELECT COALESCE(SUM(prize), 0)::int FROM tickets) AS paid_out,
+              (SELECT COUNT(*)::int FROM tickets WHERE matches >= 1) AS winners,
+              (SELECT COUNT(*)::int FROM withdrawals WHERE status = 'pending') AS pending_count,
+              (SELECT COALESCE(SUM(amount), 0)::int FROM withdrawals WHERE status = 'pending') AS pending_sum`
+    );
+    const users = await db.q(
+      `SELECT u.tg_id AS "tgId", u.name, u.balance,
+              COUNT(t.id)::int AS tickets,
+              COALESCE(SUM(t.prize), 0)::int AS winnings,
+              u.created_at AS "joined"
+         FROM users u LEFT JOIN tickets t ON t.tg_id = u.tg_id
+        GROUP BY u.tg_id
+        ORDER BY winnings DESC, u.created_at DESC
+        LIMIT 200`
+    );
+    const rounds = await db.q(
+      `SELECT r.round_id AS "roundId", r.winning, r.drawn_at AS "drawnAt",
+              (SELECT COUNT(*)::int FROM tickets t WHERE t.round_id = r.round_id) AS tickets,
+              (SELECT COUNT(*)::int FROM tickets t WHERE t.round_id = r.round_id AND t.matches >= 1) AS winners,
+              (SELECT COALESCE(SUM(t.prize), 0)::int FROM tickets t WHERE t.round_id = r.round_id) AS paid
+         FROM rounds r
+        ORDER BY r.hour_start DESC
+        LIMIT 50`
+    );
+    const withdrawals = await db.q(
+      `SELECT id, tg_id AS "tgId", amount, bank,
+              account_number AS "accountNumber", account_name AS "accountName",
+              account, status, created_at AS "createdAt"
+         FROM withdrawals
+        ORDER BY id DESC
+        LIMIT 100`
+    );
+    res.json({ ok: true, totals: totals.rows[0], users: users.rows, rounds: rounds.rows, withdrawals: withdrawals.rows });
+  } catch (err) { dbDown(res, err); }
+});
+
+/* Round inspector — every ticket in a round + per-user ticket counts. */
+app.get("/api/admin/round/:roundId", requireAdmin, async (req, res) => {
+  const rid = String(req.params.roundId || "");
+  if (!/^NG\d{8}[A-X]$/.test(rid)) return res.status(400).json({ ok: false, error: "bad round id" });
+  try {
+    const t = await db.q(
+      'SELECT ticket_id AS "ticketId", tg_id AS "tgId", name, numbers, matches, prize FROM tickets WHERE round_id = $1 ORDER BY id',
+      [rid]
+    );
+    const perUser = {};
+    t.rows.forEach((x) => {
+      const k = x.tgId;
+      perUser[k] = perUser[k] || { tgId: k, name: x.name, tickets: 0, winnings: 0 };
+      perUser[k].tickets += 1;
+      perUser[k].winnings += Number(x.prize) || 0;
+    });
+    res.json({ ok: true, roundId: rid, tickets: t.rows, perUser: Object.values(perUser) });
+  } catch (err) { dbDown(res, err); }
+});
+
+/* Manual top-up (or deduction with a negative amount) by Telegram ID. */
+app.post("/api/admin/topup", requireAdmin, async (req, res) => {
+  const tgId = String((req.body && req.body.tgId) || "").trim();
+  const amount = Math.floor(Number(req.body && req.body.amount));
+  const note = String((req.body && req.body.note) || "").slice(0, 120);
+  if (!tgId) return res.status(400).json({ ok: false, error: "telegram ID is required" });
+  if (!amount || Math.abs(amount) > 1000000) {
+    return res.status(400).json({ ok: false, error: "amount must be nonzero and within ±1000000" });
+  }
+  try {
+    await db.q("INSERT INTO users (tg_id) VALUES ($1) ON CONFLICT (tg_id) DO NOTHING", [tgId]);
+    const u = await db.q("SELECT balance FROM users WHERE tg_id = $1", [tgId]);
+    if (u.rows[0].balance + amount < 0) return res.status(400).json({ ok: false, error: "insufficient balance" });
+    await db.q("UPDATE users SET balance = balance + $1, updated_at = now() WHERE tg_id = $2", [amount, tgId]);
+    const label = (amount > 0 ? "Admin top-up" : "Admin deduction") + (note ? " · " + note : "");
+    await db.q("INSERT INTO activity (tg_id, what, amount, plus) VALUES ($1, $2, $3, $4)", [tgId, label, Math.abs(amount), amount > 0]);
+    const after = await db.q("SELECT balance FROM users WHERE tg_id = $1", [tgId]);
+    res.json({ ok: true, balance: after.rows[0].balance });
   } catch (err) { dbDown(res, err); }
 });
 app.post("/api/admin/withdraw", requireAdmin, async (req, res) => {

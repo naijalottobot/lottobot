@@ -3,54 +3,305 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>LOTTO Admin</title>
+<title>NairaLotto — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet" />
 <style>
-  body { font-family: -apple-system, Helvetica, Arial, sans-serif; max-width: 760px; margin: 0 auto; padding: 24px 16px; background: #fafafa; color: #111; }
-  h1 { font-family: Georgia, serif; }
-  .row { display: flex; gap: 10px; margin: 12px 0; }
-  input { flex: 1; padding: 12px; font-size: 14px; border: 1px solid #111; border-radius: 10px; }
-  button { padding: 12px 18px; font-weight: 700; background: #111; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
-  button.ghost { background: #fff; color: #111; border: 1px solid #111; }
-  .card { background: #fff; border: 1px solid #e5e3de; border-radius: 14px; padding: 16px; margin: 12px 0; }
-  .stat { font-size: 28px; font-weight: 700; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  td, th { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; word-break: break-all; }
-  pre { background: #111; color: #e6c878; padding: 12px; border-radius: 10px; overflow-x: auto; font-size: 12px; }
+  :root {
+    --bg: #0e0e0f; --surface: #161618; --surface2: #1c1c1f;
+    --ink: #f4f3ef; --ink2: #b3b1ab; --ink3: #7e7d78;
+    --line: #262629; --gold: #d3b168; --green: #7bc98f; --red: #e08a8a;
+    --serif: "Playfair Display", Georgia, serif;
+    --sans: "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.5; min-height: 100vh; padding: 0 0 60px; }
+  header { max-width: 1080px; margin: 0 auto; padding: 24px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .mark { width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #0b0b0c; font-family: var(--serif); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .brand b { font-family: var(--serif); letter-spacing: 4px; font-size: 16px; font-weight: 600; }
+  .toolbar { display: flex; gap: 10px; }
+  .toolbar button { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 8px 16px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .toolbar button:hover { border-color: var(--gold); }
+  main { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  /* Login gate */
+  #login { max-width: 380px; margin: 10vh auto 0; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 32px 28px; text-align: center; }
+  #login h2 { font-family: var(--serif); font-size: 26px; margin-bottom: 6px; }
+  #login p.sub { color: var(--ink2); font-size: 13px; margin-bottom: 18px; }
+  #login .row { flex-direction: column; }
+  #login input { width: 100%; }
+  #login button.go { width: 100%; }
+  #loginMsg { min-height: 18px; }
+  /* Cards + stats */
+  .card { background: transparent; border: none; padding: 0; margin: 26px 0 0; box-shadow: none; }
+  .card h2 { font-family: var(--serif); font-size: 20px; margin-bottom: 2px; font-weight: 600; }
+  .card p.sub { color: var(--ink3); font-size: 12.5px; margin-bottom: 12px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; text-align: left; }
+  .stat .l { font-size: 10.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--ink3); }
+  .stat .n { font-family: var(--serif); font-size: 27px; margin-top: 5px; font-variant-numeric: tabular-nums; }
+  .stat.green .n { color: var(--green); }
+  .stat.warn .n { color: var(--gold); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+  input, select { flex: 1; min-width: 130px; background: var(--surface2); border: 1px solid var(--line); color: var(--ink); border-radius: 10px; padding: 12px 14px; font: inherit; font-size: 13px; outline: none; }
+  input:focus { border-color: var(--gold); }
+  button.go { padding: 11px 22px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; font-size: 12.5px; background: var(--ink); color: #0b0b0c; border: none; border-radius: 10px; cursor: pointer; }
+  button.ok { padding: 7px 14px; font-weight: 700; font-size: 12px; background: transparent; color: var(--green); border: 1px solid #2c4a35; border-radius: 999px; cursor: pointer; margin-right: 6px; }
+  button.no { padding: 7px 14px; font-weight: 700; font-size: 12px; background: transparent; color: var(--red); border: 1px solid #4a2c2c; border-radius: 999px; cursor: pointer; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; font-size: 13px; margin-top: 8px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; word-break: break-all; }
+  tr:last-child td { border-bottom: none; }
+  th { font-size: 10.5px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--ink3); background: var(--surface2); }
+  td b { font-variant-numeric: tabular-nums; }
+  .pill { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border-radius: 999px; padding: 3px 10px; border: 1px solid var(--line); color: var(--ink2); }
+  .pill.paid { color: var(--green); border-color: #2c4a35; }
+  .pill.pending { color: var(--gold); border-color: #4a4023; }
+  .pill.rejected { color: var(--red); border-color: #4a2c2c; }
+  .msg { padding: 12px 16px; border-radius: 12px; font-weight: 600; font-size: 13.5px; margin: 10px 0; display: none; border: 1px solid var(--line); }
+  .msg.show { display: block; }
+  .msg.good { background: var(--surface); color: var(--green); border-color: #2c4a35; }
+  .msg.bad { background: var(--surface); color: var(--red); border-color: #4a2c2c; }
+  #dash { display: none; }
+  .scrollx { overflow-x: auto; }
+  .tabs { display: flex; gap: 10px; margin: 10px 0; }
+  .tabs button { flex: 1; padding: 10px; font-weight: 600; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; color: var(--ink2); font-family: inherit; }
+  .tabs button.on { border-color: var(--gold); color: var(--gold); }
+  #updated { color: var(--ink3); font-size: 12px; margin-top: 16px; }
+  @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 1fr); } table { font-size: 12px; } th, td { padding: 9px 10px; } }
 </style>
 </head>
 <body>
-<h1>LOTTO Admin</h1>
-<p>Overview of rounds, tickets &amp; pending withdrawals.</p>
-<div class="row">
-  <input id="key" type="password" placeholder="ADMIN_KEY" />
-  <button id="go">Load</button>
-</div>
-<div id="out"></div>
+<header>
+  <div class="brand"><span class="mark">₦</span><b>NAIRALOTTO · ADMIN</b></div>
+  <div class="toolbar">
+    <button id="refreshBtn" style="display:none" onclick="load()">Refresh</button>
+    <button id="logoutBtn" style="display:none" onclick="logout()">Logout</button>
+  </div>
+</header>
+<main>
+  <div id="login" class="card">
+    <h2>Restricted</h2>
+    <p class="sub">Enter your admin key to view the dashboard.</p>
+    <div class="row">
+      <input id="key" type="password" placeholder="ADMIN_KEY" />
+      <button class="go" onclick="load()">Login</button>
+    </div>
+    <div id="loginMsg" class="msg bad"></div>
+  </div>
+
+  <div id="dash">
+    <div class="msg good" id="okMsg"></div>
+    <div class="msg bad" id="errMsg"></div>
+
+    <div class="card">
+      <h2>Overview</h2>
+      <p class="sub">Live totals across the whole game.</p>
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="card">
+      <h2>Manual top-up</h2>
+      <p class="sub">Credit (positive) or deduct (negative) a user's balance by Telegram ID. They must have opened the app at least once — otherwise the account is created with the top-up.</p>
+      <div class="row">
+        <input id="tTg" placeholder="Telegram ID (e.g. 123456789)" />
+        <input id="tAmt" type="number" placeholder="Amount NGN (e.g. 1000, or -500)" />
+        <input id="tNote" placeholder="Note (optional)" />
+        <button class="go" onclick="doTopup()">Send</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Withdrawal requests</h2>
+      <p class="sub">Confirm moves a request from pending → paid (confirmed). Reject refunds the amount to the user's balance.</p>
+      <div class="tabs">
+        <button id="tabP" class="on" onclick="showWd('pending')">Pending</button>
+        <button id="tabH" onclick="showWd('history')">Paid / Rejected</button>
+      </div>
+      <div class="scrollx"><table>
+        <tr><th>ID</th><th>User</th><th>Amount</th><th>Bank details</th><th>Status</th><th>When</th><th></th></tr>
+        <tbody id="wdRows"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h2>Users</h2>
+      <p class="sub">Balance, total tickets and total winnings per user.</p>
+      <div class="row"><input id="uSearch" placeholder="Search Telegram ID or name…" oninput="filterUsers()" /></div>
+      <div class="scrollx"><table>
+        <tr><th>Telegram ID</th><th>Name</th><th>Balance</th><th>Tickets</th><th>Total winnings</th><th>Joined</th></tr>
+        <tbody id="userRows"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h2>Rounds</h2>
+      <p class="sub">Total rounds plus tickets, winners and prizes paid per round.</p>
+      <div class="scrollx"><table>
+        <tr><th>Round</th><th>Winning numbers</th><th>Tickets</th><th>Winners</th><th>Paid</th><th>Drawn</th></tr>
+        <tbody id="roundRows"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h2>Round inspector</h2>
+      <p class="sub">See every ticket in one round + tickets per user in that round.</p>
+      <div class="row">
+        <input id="rId" placeholder="Round ID (e.g. NG18092026A)" />
+        <button class="go" onclick="inspectRound()">Inspect</button>
+      </div>
+      <div id="roundOut"></div>
+    </div>
+
+    <p class="sub" style="margin-top:16px" id="updated"></p>
+  </div>
+</main>
 <script>
-  var base = location.origin;
-  document.getElementById("go").onclick = function () {
-    var key = document.getElementById("key").value.trim();
-    fetch(base + "/api/admin/overview?key=" + encodeURIComponent(key))
-      .then(function (r) { return r.json(); })
-      .then(function (j) {
-        if (!j.ok) { document.getElementById("out").innerHTML = "<div class='card'>Error: " + j.error + "</div>"; return; }
-        var h = "<div class='card'>Users: <span class='stat'>" + j.users.c + "</span> · Outstanding: <b>" + j.users.outstanding + "</b> · Rounds: <b>" + j.rounds + "</b> · Tickets: <b>" + j.tickets.c + "</b> · Prizes paid: <b>" + j.tickets.paid + "</b></div>";
-        h += "<div class='card'><h3>Pending withdrawals (" + j.pending.length + ")</h3>";
-        h += j.pending.length ? "<table><tr><th>ID</th><th>User</th><th>Amount (NGN)</th><th>Bank</th><th>Acct No</th><th>Name on Acct</th><th></th></tr>" + j.pending.map(function (w) {
-          return "<tr><td>" + w.id + "</td><td>" + w.tgId + "</td><td>" + w.amount + "</td><td>" + (w.bank || "") + "</td><td>" + (w.accountNumber || w.account || "") + "</td><td>" + (w.accountName || "") + "</td>" +
-            "<td><button class='ghost' onclick=\"act('" + key.replace(/'/g, "") + "'," + w.id + ",'paid')\">Paid</button> " +
-            "<button class='ghost' onclick=\"act('" + key.replace(/'/g, "") + "'," + w.id + ",'reject')\">Reject</button></td></tr>";
-        }).join("") + "</table>" : "<p>None.</p>";
-        h += "</div>";
-        h += "<div class='card'><h3>Recent rounds</h3><pre>" + JSON.stringify(j.recent, null, 1) + "</pre></div>";
-        document.getElementById("out").innerHTML = h;
-      });
-  };
-  function act(key, id, action) {
-    fetch(base + "/api/admin/withdraw", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: key, id: id, action: action }) })
-      .then(function (r) { return r.json(); })
-      .then(function () { document.getElementById("go").click(); });
+  var KEY = sessionStorage.getItem("lotto_admin") || "";
+  var DATA = null;
+  var wdTab = "pending";
+  if (KEY) { document.getElementById("key").value = KEY; load(); }
+
+  function say(ok, msg) {
+    var e = document.getElementById(ok ? "okMsg" : "errMsg");
+    e.textContent = msg;
+    e.classList.add("show");
+    clearTimeout(say._t);
+    say._t = setTimeout(function () { e.classList.remove("show"); }, 4000);
   }
+  function api(path, opts) {
+    opts = opts || {};
+    opts.headers = { "Content-Type": "application/json" };
+    var body = opts.body ? JSON.parse(opts.body) : {};
+    body.key = KEY;
+    opts.body = JSON.stringify(body);
+    if (!opts.method) { path += (path.indexOf("?") === -1 ? "?" : "&") + "key=" + encodeURIComponent(KEY); }
+    return fetch(path, opts).then(function (r) { return r.json(); });
+  }
+  function logout() {
+    KEY = "";
+    sessionStorage.removeItem("lotto_admin");
+    document.getElementById("dash").style.display = "none";
+    document.getElementById("login").style.display = "block";
+    document.getElementById("logoutBtn").style.display = "none";
+    document.getElementById("refreshBtn").style.display = "none";
+    document.getElementById("key").value = "";
+  }
+  function load() {
+    var k = document.getElementById("key").value.trim();
+    if (!k) return;
+    KEY = k;
+    api("/api/admin/overview").then(function (j) {
+      if (!j.ok) {
+        var m = document.getElementById("loginMsg");
+        m.textContent = "Error: " + j.error;
+        m.classList.add("show");
+        return;
+      }
+      sessionStorage.setItem("lotto_admin", KEY);
+      DATA = j;
+      document.getElementById("login").style.display = "none";
+      document.getElementById("dash").style.display = "block";
+      document.getElementById("logoutBtn").style.display = "inline";
+      document.getElementById("refreshBtn").style.display = "inline";
+      render();
+    }).catch(function () {
+      var m = document.getElementById("loginMsg");
+      m.textContent = "Could not reach server.";
+      m.classList.add("show");
+    });
+  }
+  function fmt(n) { return "₦" + Number(n || 0).toLocaleString("en-NG"); }
+  function dt(s) { try { return new Date(s).toLocaleString(); } catch (e) { return s || ""; } }
+
+  function render() {
+    var t = DATA.totals;
+    document.getElementById("stats").innerHTML =
+      stat(t.users, "Users") + stat(t.rounds, "Total rounds") +
+      stat(t.tickets, "Tickets") + stat(t.winners, "Winners") +
+      stat(fmt(t.paid_out), "Paid out", "green") +
+      stat(t.pending_count + " · " + fmt(t.pending_sum), "Pending", "warn");
+    renderWd();
+    document.getElementById("userRows").innerHTML = DATA.users.map(function (u) {
+      return "<tr data-q=\"" + (u.tgId + " " + (u.name || "")).toLowerCase() + "\"><td>" + u.tgId + "</td><td>" + esc(u.name) + "</td><td><b>" + fmt(u.balance) + "</b></td><td>" + u.tickets + "</td><td>" + fmt(u.winnings) + "</td><td>" + dt(u.joined) + "</td></tr>";
+    }).join("") || "<tr><td colspan='6'>No users yet.</td></tr>";
+    document.getElementById("roundRows").innerHTML = DATA.rounds.map(function (r) {
+      return "<tr><td><b>" + r.roundId + "</b></td><td>" + (r.winning ? r.winning.join(" · ") : "—") + "</td><td>" + r.tickets + "</td><td>" + r.winners + "</td><td>" + fmt(r.paid) + "</td><td>" + dt(r.drawnAt) + "</td></tr>";
+    }).join("") || "<tr><td colspan='6'>No rounds yet.</td></tr>";
+    document.getElementById("updated").textContent = "Updated " + new Date().toLocaleTimeString();
+  }
+  function stat(n, l, cls) {
+    return "<div class='stat " + (cls || "") + "'><div class='l'>" + l + "</div><div class='n'>" + n + "</div></div>";
+  }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+
+  function showWd(which) {
+    wdTab = which;
+    document.getElementById("tabP").classList.toggle("on", which === "pending");
+    document.getElementById("tabH").classList.toggle("on", which !== "pending");
+    renderWd();
+  }
+  function renderWd() {
+    var list = (DATA.withdrawals || []).filter(function (w) {
+      return wdTab === "pending" ? w.status === "pending" : w.status !== "pending";
+    });
+    document.getElementById("wdRows").innerHTML = list.map(function (w) {
+      var bank = [w.bank, w.accountNumber || w.account, w.accountName].filter(Boolean).join(" · ");
+      var act = w.status === "pending"
+        ? "<button class='ok' onclick=\"wdAct(" + w.id + ",'paid')\">Confirm</button><button class='no' onclick=\"wdAct(" + w.id + ",'reject')\">Reject</button>"
+        : "";
+      return "<tr><td>" + w.id + "</td><td>" + w.tgId + "</td><td><b>" + fmt(w.amount) + "</b></td><td>" + esc(bank) + "</td>" +
+        "<td><span class='pill " + w.status + "'>" + w.status + "</span></td><td>" + dt(w.createdAt) + "</td><td>" + act + "</td></tr>";
+    }).join("") || "<tr><td colspan='7'>Nothing here.</td></tr>";
+  }
+  function wdAct(id, action) {
+    if (!confirm(action === "paid" ? "Confirm withdrawal #" + id + " as PAID?" : "Reject withdrawal #" + id + "? The amount will be refunded.")) return;
+    api("/api/admin/withdraw", { method: "POST", body: JSON.stringify({ id: id, action: action }) }).then(function (j) {
+      if (!j.ok) { say(false, j.error); return; }
+      say(true, action === "paid" ? "Withdrawal confirmed (paid)." : "Withdrawal rejected and refunded.");
+      load();
+    });
+  }
+  function doTopup() {
+    var tg = document.getElementById("tTg").value.trim();
+    var amt = parseInt(document.getElementById("tAmt").value, 10) || 0;
+    var note = document.getElementById("tNote").value.trim();
+    if (!tg || !amt) { say(false, "Enter a Telegram ID and a nonzero amount."); return; }
+    if (!confirm((amt > 0 ? "Credit " : "Deduct ") + fmt(Math.abs(amt)) + (amt > 0 ? " to " : " from ") + tg + "?")) return;
+    api("/api/admin/topup", { method: "POST", body: JSON.stringify({ tgId: tg, amount: amt, note: note }) }).then(function (j) {
+      if (!j.ok) { say(false, j.error); return; }
+      say(true, "Done. New balance: " + fmt(j.balance));
+      document.getElementById("tTg").value = "";
+      document.getElementById("tAmt").value = "";
+      document.getElementById("tNote").value = "";
+      load();
+    });
+  }
+  function filterUsers() {
+    var q = document.getElementById("uSearch").value.toLowerCase();
+    var rows = document.querySelectorAll("#userRows tr[data-q]");
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].style.display = rows[i].getAttribute("data-q").indexOf(q) === -1 ? "none" : "";
+    }
+  }
+  function inspectRound() {
+    var rid = document.getElementById("rId").value.trim().toUpperCase();
+    if (!rid) return;
+    document.getElementById("roundOut").innerHTML = "<p class='sub'>Loading…</p>";
+    api("/api/admin/round/" + encodeURIComponent(rid)).then(function (j) {
+      if (!j.ok) { document.getElementById("roundOut").innerHTML = "<p class='sub'>Error: " + esc(j.error) + "</p>"; return; }
+      var h = "<p class='sub'>" + j.tickets.length + " tickets in " + esc(j.roundId) + "</p>";
+      h += "<div class='scrollx'><table><tr><th>User</th><th>Tickets in round</th><th>Winnings in round</th></tr>";
+      h += (j.perUser || []).map(function (u) {
+        return "<tr><td>" + u.tgId + " " + esc(u.name || "") + "</td><td>" + u.tickets + "</td><td>" + fmt(u.winnings) + "</td></tr>";
+      }).join("") + "</table></div>";
+      h += "<div class='scrollx'><table><tr><th>Ticket</th><th>User</th><th>Numbers</th><th>Match</th><th>Prize</th></tr>";
+      h += (j.tickets || []).map(function (t) {
+        return "<tr><td>" + t.ticketId + "</td><td>" + t.tgId + "</td><td>" + (t.numbers || []).join(", ") + "</td><td>" + (t.matches == null ? "—" : t.matches + "/5") + "</td><td>" + fmt(t.prize) + "</td></tr>";
+      }).join("") + "</table></div>";
+      document.getElementById("roundOut").innerHTML = h;
+    });
+  }
+  document.getElementById("key").addEventListener("keydown", function (e) { if (e.key === "Enter") load(); });
 </script>
 </body>
 </html>
